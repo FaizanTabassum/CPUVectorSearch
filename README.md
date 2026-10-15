@@ -1,0 +1,117 @@
+# CPUVectorSearch
+
+CEG5206 project: **When does grouped CPU vector search beat an optimised exhaustive scan?**
+
+We will compare a scalar exhaustive scan, an optimised exhaustive scan, and a group-built
+inverted-file (IVF) index. The research target is at least **95% recall@10** with lower query
+latency than the optimised exhaustive scan. A speedup is a hypothesis to test.
+
+## What works now
+
+- Dependency-free C++17 scalar squared-L2 search with bounded-heap top-k selection.
+- Shared index interface, row-major FP32 storage, and deterministic distance/ID ordering.
+- Independent FP64 oracle tests plus malformed-file and end-to-end checks.
+- Seeded synthetic or local GloVe data preparation with disjoint source-row splits and checksums.
+- Single-thread smoke benchmark reporting load/build time, median/p95 latency, batch
+  throughput, candidate count, and database-vector bytes as JSON.
+- CMake/CTest and GitHub Actions for Linux/macOS Debug/Release and Linux sanitizers.
+
+**Still to implement:** blocked layout, explicit SIMD, optimised flat search, centroid training,
+IVF lists/probing, query threading, recall evaluation, peak-memory measurement, the full
+experiment runner, and plots. The smoke benchmark reports unimplemented metrics as `null`.
+Its database-vector byte count is not peak process or engine memory.
+
+## Quick start
+
+Requirements: a C++17 compiler, CMake 3.16+, and Python 3.9+ for data preparation/tests.
+Python scripts use only the standard library. Install a compiler and CMake if absent
+(for example, Apple Command Line Tools plus CMake on macOS, or GCC plus CMake on Linux).
+
+From the repository root:
+
+```sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel 2
+ctest --test-dir build --output-on-failure
+
+python3 scripts/prepare_data.py --synthetic \
+  --database-size 1000 --tuning-size 20 --test-size 20 \
+  --output data/processed/smoke
+
+./build/vector_search \
+  --database data/processed/smoke/database.cvec \
+  --queries data/processed/smoke/tuning.cvec \
+  --k 10 --output results/raw/smoke.json
+```
+
+Use `--help` on either program for options. Preparation refuses to overwrite an existing
+dataset; choose a new output directory for another run. Synthetic timings only verify
+that the pipeline works and are not evidence for the project's research question.
+
+For a sanitizer build with Clang/GCC:
+
+```sh
+cmake -S . -B build-sanitize -DCMAKE_BUILD_TYPE=Debug -DCVS_SANITIZERS=ON
+cmake --build build-sanitize --parallel 2
+ctest --test-dir build-sanitize --output-on-failure
+```
+
+## Prepare the project dataset
+
+Obtain and unpack the proposal's **Stanford GloVe 2024 Wikipedia/Gigaword, 50-dimensional**
+text data into `data/raw/`. Confirm the release and its usage terms; do not substitute
+another GloVe release without recording the change. The script accepts one UTF-8 token
+plus 50 coordinates per line and rejects malformed, zero-norm, or non-finite rows.
+It does not download data or train centroids.
+
+```sh
+python3 scripts/prepare_data.py \
+  --glove data/raw/YOUR_50D_GLOVE_FILE.txt \
+  --database-size 100000 --tuning-size 500 --test-size 1000 \
+  --dimensions 50 --seed 5206 --output data/processed/glove-50d-seed5206
+```
+
+The script reservoir-samples 101,500 source rows, shuffles them with the recorded seed,
+then makes separate database, tuning, and test splits. It L2-normalises before rounding
+to FP32. `manifest.json` records source row IDs, input/output SHA-256 hashes, sizes,
+seed, and Python version. Disjoint source rows may still contain identical vectors;
+do not interpret row-disjointness as semantic deduplication.
+
+Train centroids on database vectors only. Select probe counts using tuning queries,
+then freeze all settings before running the held-out test queries. Use prefixes of
+the shuffled database for nested 10k/50k/100k subsets and recompute exact neighbours
+for each subset. The subset/recall runner is a future task.
+
+## Repository map
+
+```text
+apps/benchmark.cpp       Single-thread scalar smoke benchmark
+include/cvs/             Shared matrix, search, and file-loading API
+src/                     Scalar search and CVEC reader
+tests/                   Independent oracle, data and integration tests
+scripts/prepare_data.py  Seeded sampling, normalisation, and split manifest
+configs/experiments.json Planned final-study settings (not an executable runner)
+docs/contracts.md        Data, search, correctness, and measurement contracts
+docs/team-plan.md        Owners, milestones, review pairs, acceptance criteria
+data/raw/                Local source data (ignored)
+data/processed/          Local prepared datasets (ignored)
+results/raw/             Local benchmark outputs (ignored)
+results/plots/           Local plots (ignored)
+```
+
+## Start as a team
+
+Read [the contracts](docs/contracts.md), agree on IDs/file format/tie handling, and assign
+members A-D using [the team plan](docs/team-plan.md). Run the quick start on each teammate's
+machine before adding an optimisation. Preserve scalar correctness while the other two
+search routes are implemented behind `SearchIndex`.
+
+The final study targets an existing multicore CPU machine with 8 GB RAM, under 512 MB
+search-engine memory, and roughly 3 GB disk for source data and outputs. It requires no
+GPU, paid service, cloud database, or API. Quantisation is optional and outside this starter.
+
+## Project basis
+
+Scope follows the team's one-page proposal dated 2 October 2026. The proposal is not
+redistributed here. Final deliverables are source, correctness tests, raw measurements,
+plots, report, and a demonstration. Neighbour recall does not establish human semantic relevance.
