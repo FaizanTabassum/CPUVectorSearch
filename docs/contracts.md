@@ -8,8 +8,9 @@ contracts and tests together before integrating an interface change.
 
 - Everyone can generate seeded synthetic CVEC files with the existing preparation script.
   B/C/D do not wait for A's real dataset to implement or test their components.
-- B implements a separate optimised flat route behind `SearchIndex`, preserving the
-  existing scalar route and keeping layout details private to its implementation.
+- B's `OptimizedFlatIndex` implements the shared `SearchIndex` contract while preserving
+  the existing scalar route and keeping blocked storage private to its implementation.
+  `ScoringBackend` and `score_squared_l2` are available for C's later IVF integration.
 - C builds IVF with the existing `cvs::squared_l2` and `cvs::nearer` helpers, fixed centroids
   for list/probe fixtures, and independently trained centroids for development searches.
   It does not wait for B's SIMD or blocked storage. C initially implements its candidate
@@ -21,11 +22,30 @@ contracts and tests together before integrating an interface change.
   routes arrive; that later check does not block A's other work.
 
 The first all-lists IVF check compares scalar-backed IVF to scalar exhaustive search.
-At the later B/C integration checkpoint, extract or expose a shared candidate-scoring and
-selection path, keeping backend choice explicit and preserving original database IDs.
-Repeat all-lists equivalence with the same backend on both routes. Matching FP32 arithmetic
-and tie order are required; B's new storage representation must not become a prerequisite
-for C's list/probe implementation. See [team-plan.md](team-plan.md) for handoffs and owners.
+At the later B/C integration checkpoint, C can call `score_squared_l2` with an explicit
+`ScoringBackend` for each original database ID; `OptimizedFlatIndex::backend()` reports the
+resolved backend. An unavailable AVX2 request resolves to scalar. Repeat all-lists
+equivalence with the same backend on both routes. The AVX2 scorer accumulates eight
+coordinate lanes and reduces them to one FP32 score, so near-tie rankings can differ from
+the scalar accumulation order. Preserve original IDs and deterministic `(distance, ID)`
+selection. B's blocked storage remains private and is not a prerequisite for C's list/probe
+implementation. See [team-plan.md](team-plan.md) for handoffs and owners.
+
+## Optimized flat route and scoring backend
+
+`OptimizedFlatIndex` builds a private copy in eight-row tiles with each row padded to a
+multiple of eight FP32 coordinates. Original database IDs remain the row IDs. Its default
+backend uses AVX2 when the compiler built that implementation and runtime CPU detection
+reports support; otherwise it uses scalar scoring. Callers can request scalar or AVX2
+explicitly, and an unavailable AVX2 request safely resolves to scalar. `SquaredL2Scorer`
+resolves the choice once and is intended for repeated candidate scoring; `score_squared_l2`
+is a convenience for one-off calls. Both accept the actual dimension count and do not require
+callers to use the optimized index's private layout.
+
+AVX2 accumulates coordinate lanes separately before reducing them, so its FP32 rounding can
+differ from scalar accumulation. Do not enable global fast-math or FMA for this kernel.
+Check near-tie behavior explicitly and compare IVF to exhaustive search using the same
+resolved scoring backend.
 
 ## Representation and identifiers
 
@@ -73,11 +93,11 @@ space; future threading must not add unsynchronised mutable shared scratch state
 - The benchmark requires positive k <= N and nonempty queries/database. Library edge
   cases are broader than benchmark inputs.
 
-The scalar route uses O(N * D + N log k) query work and O(k) selection storage. During
-integration, the optimised scan and IVF route must use a shared distance/selection kernel
-for the final all-lists equivalence check. Their initial development can proceed separately
-against the existing scalar helpers and ordering contract. No fake optimised/IVF aliases
-exist in this starter.
+Both exhaustive routes use O(N * D + N log k) query work and O(k) selection storage.
+The optimized route shares the scalar ordering rule and candidate-count contract; its AVX2
+score reduction may differ in FP32 rounding. During IVF integration, use the same explicit
+scoring backend for both routes in all-lists equivalence checks. Early IVF development can
+still proceed against the scalar helpers and ordering contract.
 
 ## Numerical correctness
 

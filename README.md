@@ -8,17 +8,18 @@ latency than the optimised exhaustive scan. A speedup is a hypothesis to test.
 
 ## What works now
 
-- Dependency-free C++17 scalar squared-L2 search with bounded-heap top-k selection.
-- Shared index interface, row-major FP32 storage, and deterministic distance/ID ordering.
+- Dependency-free C++17 scalar and optimized flat squared-L2 search with bounded-heap top-k selection.
+- Optimized flat storage with eight-row tiles, padded dimensions, AVX2 scoring where available, and a scalar fallback.
+- Shared index interface, row-major FP32 input storage, and deterministic distance/ID ordering.
 - Independent FP64 oracle tests plus malformed-file and end-to-end checks.
 - Seeded synthetic or local GloVe data preparation with disjoint source-row splits and checksums.
 - Single-thread smoke benchmark reporting load/build time, median/p95 latency, batch
   throughput, candidate count, and database-vector bytes as JSON.
 - CMake/CTest and GitHub Actions for Linux/macOS Debug/Release and Linux sanitizers.
 
-**Still to implement:** blocked layout, explicit SIMD, optimised flat search, centroid training,
-IVF lists/probing, query threading, recall evaluation, peak-memory measurement, the full
-experiment runner, and plots. The smoke benchmark reports unimplemented metrics as `null`.
+**Still to implement:** centroid training, IVF lists/probing, query threading, recall evaluation,
+peak-memory measurement, the full experiment runner, and plots. The smoke benchmark reports
+unimplemented metrics as `null` and currently runs only the scalar route.
 Its database-vector byte count is not peak process or engine memory.
 
 ## Quick start
@@ -86,8 +87,8 @@ for each subset. The subset/recall runner is a future task.
 
 ```text
 apps/benchmark.cpp       Single-thread scalar smoke benchmark
-include/cvs/             Shared matrix, search, and file-loading API
-src/                     Scalar search and CVEC reader
+include/cvs/             Shared matrix, search, optimized-flat, and file-loading API
+src/                     Scalar/optimized-flat search and CVEC reader
 tests/                   Independent oracle, data and integration tests
 scripts/prepare_data.py  Seeded sampling, normalisation, and split manifest
 configs/experiments.json Planned final-study settings (not an executable runner)
