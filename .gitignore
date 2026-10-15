@@ -1,0 +1,13 @@
+/build*/
+/data/raw/*
+!/data/raw/.gitkeep
+/data/processed/*
+!/data/processed/.gitkeep
+/results/raw/*
+!/results/raw/.gitkeep
+/results/plots/*
+!/results/plots/.gitkeep
+__pycache__/
+*.py[cod]
+.DS_Store
+.venv/
