@@ -32,7 +32,9 @@ def glove_sample(path, dimensions, count, rng):
     with path.open("rb") as source:
         for line_number, raw in enumerate(source, 1):
             digest.update(raw)
-            fields = raw.decode("utf-8").split()
+            # GloVe uses ASCII whitespace between columns; Unicode whitespace
+            # such as NBSP can legitimately occur inside a UTF-8 token.
+            fields = raw.split()
             if len(fields) != dimensions + 1:
                 raise ValueError(f"line {line_number}: expected token plus {dimensions} coordinates")
             values = [float(value) for value in fields[1:]]

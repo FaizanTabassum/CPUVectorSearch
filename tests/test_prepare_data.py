@@ -73,6 +73,16 @@ class DataTests(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 self.prepare(root / "output", "--glove", str(source))
 
+    def test_unicode_whitespace_inside_glove_tokens(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "glove.txt"
+            # Matches the non-breaking spaces in tokens from the real 2024 file.
+            source.write_text("".join(f".\u00a0.\u00a0.{i} {i+1} 2 3\n" for i in range(40)),
+                              encoding="utf-8")
+            self.prepare(root / "output", "--glove", str(source))
+            self.check_splits(root / "output")
+
 
 if __name__ == "__main__":
     unittest.main()
