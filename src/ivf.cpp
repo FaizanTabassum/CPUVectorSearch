@@ -1,5 +1,8 @@
 #include "cvs/ivf.hpp"
 
+#include <algorithm>
+#include <cmath>
+#include <queue>
 #include <stdexcept>
 #include <utility>
 
@@ -45,6 +48,52 @@ void IvfIndex::check_nprobe(std::size_t nprobe) const {
     }
 }
 
-// search() is the next step.
+SearchResult IvfIndex::search(const std::vector<float>& query, std::size_t k) const {
+    return search(query, k, default_nprobe_);
+}
+
+SearchResult IvfIndex::search(const std::vector<float>& query, std::size_t k, std::size_t nprobe) const {
+    // 1. Validate, even when k == 0 (same rule as the scalar index).
+    if (query.size() != dimensions()) throw std::invalid_argument("query dimension mismatch");
+    for (float value : query) {
+        if (!std::isfinite(value)) throw std::invalid_argument("query contains non-finite values");
+    }
+    check_nprobe(nprobe);
+    if (k == 0) return {};
+
+    // 2. Pick the nprobe nearest centroids. Neighbor.id holds the centroid
+    //    index here, so `nearer` breaks ties toward the smaller index.
+    std::vector<Neighbor> centroid_scores(nlist());
+    for (std::size_t c = 0; c < nlist(); ++c) {
+        centroid_scores[c] = {c, squared_l2(centroids_.row(c), query.data(), dimensions())};
+    }
+    std::partial_sort(centroid_scores.begin(), centroid_scores.begin() + nprobe,
+                      centroid_scores.end(), nearer);
+
+    // 3. Scan only the probed lists, keeping the best k in a bounded heap.
+    //    Same distance call and ordering as ScalarFlatIndex.
+    std::priority_queue<Neighbor, std::vector<Neighbor>, decltype(&nearer)> heap(&nearer);
+    SearchResult result;
+    for (std::size_t p = 0; p < nprobe; ++p) {
+        for (std::size_t id : lists_[centroid_scores[p].id]) {
+            const Neighbor candidate{id, squared_l2(database_.row(id), query.data(), dimensions())};
+            ++result.candidates_examined;  // database vectors only, not centroids
+            if (heap.size() < k) heap.push(candidate);
+            else if (nearer(candidate, heap.top())) {
+                heap.pop();
+                heap.push(candidate);
+            }
+        }
+    }
+
+    // 4. Empty the heap and sort best-first.
+    result.neighbors.reserve(heap.size());
+    while (!heap.empty()) {
+        result.neighbors.push_back(heap.top());
+        heap.pop();
+    }
+    std::sort(result.neighbors.begin(), result.neighbors.end(), nearer);
+    return result;
+}
 
 } // namespace cvs
