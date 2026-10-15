@@ -52,7 +52,23 @@ Preparation refuses to overwrite an existing dataset. If you have run this examp
 already, reuse its files or choose a different directory after `--output`.
 The benchmark output file itself can be replaced when that benchmark is rerun.
 
-## 4. Download the real data
+## 4. Use the included real data
+
+The prepared files and practice answer sheets are already included under
+`data/processed/glove-50d-seed5206/`. After cloning, you can use them immediately:
+
+```sh
+./build/vector_search \
+  --database data/processed/glove-50d-seed5206/database.cvec \
+  --queries data/processed/glove-50d-seed5206/tuning.cvec \
+  --k 10 --output results/raw/glove-scalar.json
+```
+
+Check the [dataset notes](../data/processed/glove-50d-seed5206/README.md) for file checksums,
+source attribution, and the included answer sheets. The test inputs are included for
+reproducibility but stay reserved until settings are frozen.
+
+### Optional: download the original source
 
 Use the 50-dimensional GloVe 2024 Wikipedia + Gigaword vectors listed on the
 [official Stanford page](https://nlp.stanford.edu/projects/glove/). Check the source's
@@ -73,14 +89,17 @@ unzip -p data/raw/glove.2024.wikigiga.50d.zip '*.txt' \
 If you already downloaded and extracted it, continue with your existing files.
 The commands above replace files with those names if run again.
 
-## 5. Prepare the search collection and separate inputs
+## 5. Optional: reproduce the prepared dataset
+
+Skip this step if you are using the included files. To repeat preparation from the original
+download, use a new output directory so the shared snapshot is preserved:
 
 ```sh
 python3 scripts/prepare_data.py \
   --glove data/raw/glove.2024.wikigiga.50d.txt \
   --database-size 100000 --tuning-size 500 --test-size 1000 \
   --dimensions 50 --seed 5206 \
-  --output data/processed/glove-50d-seed5206
+  --output data/processed/glove-50d-seed5206-regenerated
 ```
 
 The script selects entries, puts their number lists on a common scale, and makes three
@@ -112,7 +131,7 @@ practice inputs. The final-input workflow and full recall evaluation remain futu
 | `docs/` | Guides, team plan, and shared rules |
 | `configs/` | Planned experiment settings; no full runner consumes them yet |
 | `data/raw/` | Downloaded data, kept out of Git |
-| `data/processed/` | Prepared data and reference answers, kept out of Git |
+| `data/processed/` | One versioned team dataset; other prepared datasets and new runs stay local |
 | `results/raw/`, `results/plots/` | Local measurements and plots, kept out of Git |
 
 The final submission still needs deliberately archived results, plots, source, tests,

@@ -6,7 +6,9 @@ prefix. It never trains a model, chooses IVF settings, or times other routes.
 
 ## Build and generate practice answers
 
-From the repository root, with the prepared GloVe directory already present:
+Ready-made scalar practice answers are included in
+`data/processed/glove-50d-seed5206/reference-tuning/`. To rebuild them from the repository
+root, write into a new local directory rather than replacing those shared files:
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -15,7 +17,8 @@ ctest --test-dir build --output-on-failure
 
 python3 scripts/generate_reference.py \
   --dataset data/processed/glove-50d-seed5206 \
-  --binary build/reference_search
+  --binary build/reference_search \
+  --output data/processed/reference-tuning-local
 ```
 
 The wrapper generates answers for all 500 **tuning** queries separately against the first
@@ -24,7 +27,7 @@ generation/evaluation belongs after the settings freeze and is outside this tuni
 The output directory must not already exist; use `--output` with a new path for another
 run. Existing answers and dataset files are preserved.
 
-Outputs under `data/processed/glove-50d-seed5206/reference-tuning/`:
+The shared answer directory and the fresh local output contain:
 
 - `top10-tuning-n10000.csv`
 - `top10-tuning-n50000.csv`
@@ -35,7 +38,8 @@ Outputs under `data/processed/glove-50d-seed5206/reference-tuning/`:
 
 The wrapper checks input hashes and disjoint database/tuning source rows, validates output
 shape, ID ranges, unique neighbours and ordering, and publishes only after every subset
-succeeds. Vectors and generated answers remain in ignored local data directories.
+succeeds. The fixed team dataset and its practice answers are tracked in Git; newly
+generated outputs such as `data/processed/reference-tuning-local/` remain ignored.
 
 ## Reading an answer sheet
 

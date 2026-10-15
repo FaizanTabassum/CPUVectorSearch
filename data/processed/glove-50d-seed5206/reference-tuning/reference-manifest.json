@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "query_split": "tuning",
+  "route": "scalar_flat",
+  "metric": "squared_l2",
+  "arithmetic": "FP32 scalar; FP contraction disabled in CMake",
+  "tie_break": "ascending_database_id",
+  "id_base": 0,
+  "rank_base": 1,
+  "k": 10,
+  "dimensions": 50,
+  "query_rows": 500,
+  "subset_policy": "prefix of the existing shuffled database; recompute each subset",
+  "data_seed": 5206,
+  "dataset_manifest_sha256": "68d4ffa78af5de689324d959b95685d43b0f42a714b3a6956af0bf7e437857e6",
+  "database_sha256": "c5491db56eed7d3cd5990b2c61e872199e6b724a8b6a4bcf899310dba9da1b9d",
+  "queries_sha256": "8cc4b7b5ab65017fd30aa06de2d20294969f8b91a7b9658e54526604fbba4655",
+  "executable_sha256": "1fc7bf4fc5b95f3a69c535e258d6f8d860e8a4a3e5069d5c656cfc734e1d6cb7",
+  "source_sha256": {
+    "apps/ground_truth.cpp": "0a7a1899ffae6bfb1793ed68b69d7c7d5b055e86885f9623c5e0aaf20c4d943c",
+    "scripts/generate_reference.py": "4555eb8159f76ff179ac40e4bdaf486bc4e8b41f45e6ea23584f58d121fb6ac2",
+    "src/search.cpp": "b19b6dc69bb783b794451942dff3c61921c73dfe65271db8e0fc5f5b0fc7a2ae",
+    "src/io.cpp": "0913e9b74b2aa9101cbceb117e025a4bc3181965beb55ae7dd7e1e08f8a46d54",
+    "include/cvs/search.hpp": "b974c761514d11aad8c50cdfe30535b5bc57da2dab90a1cce7fda046643f789d",
+    "include/cvs/io.hpp": "9460e8b8e0dc5da77fdba6caf334ccf1e8c8a49f36f3afb55a8aa76915e58aa7",
+    "CMakeLists.txt": "8287d371a7735f6d54a24403de9c4ac5fe7cd02c4a8d48406d00489121ff5750"
+  },
+  "outputs": [
+    {
+      "file": "top10-tuning-n10000.csv",
+      "database_rows": 10000,
+      "answer_rows": 5000,
+      "sha256": "bebc5ef35148dad51a23090e77cd1de4c3f579c6e21252d914a7fa360287a945"
+    },
+    {
+      "file": "top10-tuning-n50000.csv",
+      "database_rows": 50000,
+      "answer_rows": 5000,
+      "sha256": "160400ce4b4ec14e565e6f27edfa7995c048429c483ee10679af3b7aa71da5cb"
+    },
+    {
+      "file": "top10-tuning-n100000.csv",
+      "database_rows": 100000,
+      "answer_rows": 5000,
+      "sha256": "66acaf40b34b16e2d56d89bd9995d4b4261ef61fd298121a00fd3d72e883b115"
+    }
+  ],
+  "host_platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "build_configuration": {
+    "CMAKE_BUILD_TYPE": "Release",
+    "CMAKE_CXX_COMPILER": "/usr/bin/c++",
+    "CMAKE_CXX_FLAGS": "",
+    "CMAKE_CXX_FLAGS_DEBUG": "-g",
+    "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+    "CVS_SANITIZERS": "OFF"
+  },
+  "compiler_version": "Apple clang version 21.0.0 (clang-2100.3.34.2)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Library/Developer/CommandLineTools/usr/bin",
+  "base_git_commit": "c51ee556120294b4c60cc208865c35d763c7e38f",
+  "source_hashes_identify_local_changes": true
+}

@@ -1,0 +1,2 @@
+# Store the shared vector files as ordinary binary Git objects.
+data/processed/glove-50d-seed5206/*.cvec binary
