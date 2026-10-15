@@ -25,6 +25,10 @@ endif()
 add_executable(vector_search apps/benchmark.cpp)
 target_link_libraries(vector_search PRIVATE cpu_vector_search)
 
+# B's isolated layout/SIMD ablation; the full experiment runner is a separate task.
+add_executable(flat_ablation apps/flat_ablation.cpp)
+target_link_libraries(flat_ablation PRIVATE cpu_vector_search)
+
 include(CTest)
 if(BUILD_TESTING)
   add_executable(search_tests tests/search_tests.cpp)

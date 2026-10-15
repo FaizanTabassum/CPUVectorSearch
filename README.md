@@ -10,6 +10,7 @@ latency than the optimised exhaustive scan. A speedup is a hypothesis to test.
 
 - Dependency-free C++17 scalar and optimized flat squared-L2 search with bounded-heap top-k selection.
 - Optimized flat storage with eight-row tiles, padded dimensions, AVX2 scoring where available, and a scalar fallback.
+- A B-specific ablation runner comparing scalar flat, blocked scalar, and the selected optimized backend with repeated timings and ranking-difference counts.
 - Shared index interface, row-major FP32 input storage, and deterministic distance/ID ordering.
 - Independent FP64 oracle tests plus malformed-file and end-to-end checks.
 - Seeded synthetic or local GloVe data preparation with disjoint source-row splits and checksums.
@@ -45,9 +46,24 @@ python3 scripts/prepare_data.py --synthetic \
   --k 10 --output results/raw/smoke.json
 ```
 
-Use `--help` on either program for options. Preparation refuses to overwrite an existing
+Use `--help` on either benchmark program and `scripts/prepare_data.py` for options. Preparation refuses to overwrite an existing
 dataset; choose a new output directory for another run. Synthetic timings only verify
 that the pipeline works and are not evidence for the project's research question.
+
+For B's layout/SIMD ablation, run the dedicated tool on a prepared CVEC dataset:
+
+```sh
+./build/flat_ablation \
+  --database data/processed/smoke/database.cvec \
+  --queries data/processed/smoke/tuning.cvec \
+  --k 10 --warmup-queries 5 --repetitions 5 --data-seed 5206 \
+  --output results/raw/flat-ablation-smoke.json
+```
+
+The JSON compares the scalar route, blocked storage with scalar scoring, and blocked storage
+with the selected backend. It records build time, padded index bytes, repeated query latency,
+throughput, and top-k ranking differences versus scalar. A supplied `--machine-model` label
+is included in the metadata. This focused ablation does not replace the final experiment runner.
 
 For a sanitizer build with Clang/GCC:
 
@@ -87,6 +103,7 @@ for each subset. The subset/recall runner is a future task.
 
 ```text
 apps/benchmark.cpp       Single-thread scalar smoke benchmark
+apps/flat_ablation.cpp   B's layout/SIMD ablation benchmark
 include/cvs/             Shared matrix, search, optimized-flat, and file-loading API
 src/                     Scalar/optimized-flat search and CVEC reader
 tests/                   Independent oracle, data and integration tests
