@@ -1,122 +1,101 @@
 # CPUVectorSearch
 
-CEG5206 project: **When does grouped CPU vector search beat an optimised exhaustive scan?**
+A CEG5206 team project about finding similar entries faster on a computer's processor (CPU).
 
-We will compare a scalar exhaustive scan, an optimised exhaustive scan, and a group-built
-inverted-file (IVF) index. The research target is at least **95% recall@10** with lower query
-latency than the optimised exhaustive scan. A speedup is a hypothesis to test.
+## What is the idea?
 
-## What works now
+Our dataset represents each word as a list of 50 numbers. This list is called a **vector**.
+Given one such list, our program finds the **10 closest lists** in a collection of entries.
+Closeness is calculated from the numbers; it does not always mean the words have similar meanings.
 
-- Dependency-free C++17 scalar squared-L2 search with bounded-heap top-k selection.
-- Shared index interface, row-major FP32 storage, and deterministic distance/ID ordering.
-- Independent FP64 oracle tests plus malformed-file and end-to-end checks.
-- Seeded synthetic or local GloVe data preparation with disjoint source-row splits and checksums.
-- Single-thread smoke benchmark reporting load/build time, median/p95 latency, batch
-  throughput, candidate count, and database-vector bytes as JSON.
-- CMake/CTest and GitHub Actions for Linux/macOS Debug/Release and Linux sanitizers.
+We are comparing three ways to search:
 
-**Still to implement:** blocked layout, explicit SIMD, optimised flat search, centroid training,
-IVF lists/probing, query threading, recall evaluation, peak-memory measurement, the full
-experiment runner, and plots. The smoke benchmark reports unimplemented metrics as `null`.
-Its database-vector byte count is not peak process or engine memory.
+1. **Basic search:** check every entry, one by one.
+2. **Faster full search:** still check every entry, but make better use of the processor.
+3. **Grouped search (IVF):** organise entries into groups and search selected groups.
+   This can reduce the work, but it may miss some close matches.
 
-## Quick start
+Our question: **can grouped search beat the faster full search while finding at least
+95% of the reference matches across many searches?** This is a goal to investigate.
 
-Requirements: a C++17 compiler, CMake 3.16+, and Python 3.9+ for data preparation/tests.
-Python scripts use only the standard library. Install a compiler and CMake if absent
-(for example, Apple Command Line Tools plus CMake on macOS, or GCC plus CMake on Linux).
+## What happens during a search?
 
-From the repository root:
+1. Take one prepared list of numbers as the search input, also called a **query**.
+2. Use one of the three methods to compare it with entries in the collection.
+3. Return the ten closest entries, ordered from closest to furthest away.
+
+Each returned entry has an identifying number and a **distance score**. A smaller score
+means its numbers are closer to the input. The program calculates these results automatically.
+
+## How do we compare the methods?
+
+The basic search checks every entry and creates an answer sheet. We give the faster
+methods the same inputs and compare their returned entries with those reference answers.
+Finding nine of the ten reference entries means **90% recall** for that search. We average
+this percentage across the inputs to measure how many reference matches a method finds.
+
+We will test collections of **10,000, 50,000, and 100,000 entries** and measure search time,
+match recovery, and memory use. We also compare running searches on one processor core
+with spreading multiple searches across several cores.
+
+## What is ready?
+
+The basic exact search and B's faster exact search are implemented. The faster search
+uses padded storage and AVX2 scoring when the processor supports it, with a scalar fallback.
+B's ablation tool compares the basic search, the new storage layout with scalar scoring,
+and the AVX2 route. Synthetic 50-dimensional benchmark results are recorded in
+[docs/optimized-flat-results.md](docs/optimized-flat-results.md); real-data validation remains.
+
+The repository also includes data-preparation tools, correctness checks using an independent
+FP64 reference, a tool for saving exact reference answers, and a simple timing benchmark.
+The grouped search (IVF), searches across multiple processor cores, and the full comparison
+study are still to be implemented.
+
+## Getting started
+
+Follow the [setup and first-run guide](docs/getting-started.md). You can try the program
+with a small generated dataset before downloading the real data.
+
+For the real study, we use GloVe 2024 Wikipedia + Gigaword, with 50 numbers per word:
+
+- **100,000 entries** to search through.
+- **500 practice inputs** to help choose the search settings.
+- **1,000 final inputs** saved for evaluation after the settings are chosen.
+
+Keeping final inputs separate helps us judge the chosen settings on fresh examples.
+Keep downloaded data and generated answer sheets on your computer. The data folders
+are already excluded from Git.
+
+For B's layout/SIMD ablation, run the dedicated tool on prepared CVEC files:
 
 ```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --parallel 2
-ctest --test-dir build --output-on-failure
-
-python3 scripts/prepare_data.py --synthetic \
-  --database-size 1000 --tuning-size 20 --test-size 20 \
-  --output data/processed/smoke
-
-./build/vector_search \
+./build/flat_ablation \
   --database data/processed/smoke/database.cvec \
   --queries data/processed/smoke/tuning.cvec \
-  --k 10 --output results/raw/smoke.json
+  --k 10 --warmup-queries 5 --repetitions 5 --data-seed 5206 \
+  --output results/raw/flat-ablation-smoke.json
 ```
 
-Use `--help` on either program for options. Preparation refuses to overwrite an existing
-dataset; choose a new output directory for another run. Synthetic timings only verify
-that the pipeline works and are not evidence for the project's research question.
+The JSON records build time, padded index bytes, query latency and throughput, and top-k
+ranking differences against the basic search. Synthetic timings check that the tool works;
+they are not results on the real dataset.
 
-For a sanitizer build with Clang/GCC:
+## Work split
 
-```sh
-cmake -S . -B build-sanitize -DCMAKE_BUILD_TYPE=Debug -DCVS_SANITIZERS=ON
-cmake --build build-sanitize --parallel 2
-ctest --test-dir build-sanitize --output-on-failure
-```
+| Member | Main responsibility |
+| --- | --- |
+| A | Prepare reliable data and reference answers; check correctness |
+| B | Make the full search faster |
+| C | Build the grouped search |
+| D | Measure speed, compare results, and run searches across multiple cores |
 
-## Prepare the project dataset
+Everyone can start with the existing basic search and generated data. See the
+[team plan](docs/team-plan.md) for independent starting tasks and integration checkpoints.
 
-Obtain and unpack the proposal's **Stanford GloVe 2024 Wikipedia/Gigaword, 50-dimensional**
-text data into `data/raw/`. Confirm the release and its usage terms; do not substitute
-another GloVe release without recording the change. The script accepts one UTF-8 token
-plus 50 coordinates per line and rejects malformed, zero-norm, or non-finite rows.
-It does not download data or train centroids.
+## More help
 
-```sh
-python3 scripts/prepare_data.py \
-  --glove data/raw/YOUR_50D_GLOVE_FILE.txt \
-  --database-size 100000 --tuning-size 500 --test-size 1000 \
-  --dimensions 50 --seed 5206 --output data/processed/glove-50d-seed5206
-```
-
-The script reservoir-samples 101,500 source rows, shuffles them with the recorded seed,
-then makes separate database, tuning, and test splits. It L2-normalises before rounding
-to FP32. `manifest.json` records source row IDs, input/output SHA-256 hashes, sizes,
-seed, and Python version. Disjoint source rows may still contain identical vectors;
-do not interpret row-disjointness as semantic deduplication.
-
-Train centroids on database vectors only. Select probe counts using tuning queries,
-then freeze all settings before running the held-out test queries. Use prefixes of
-the shuffled database for nested 10k/50k/100k subsets and recompute exact neighbours
-for each subset. The subset/recall runner is a future task.
-
-## Repository map
-
-```text
-apps/benchmark.cpp       Single-thread scalar smoke benchmark
-include/cvs/             Shared matrix, search, and file-loading API
-src/                     Scalar search and CVEC reader
-tests/                   Independent oracle, data and integration tests
-scripts/prepare_data.py  Seeded sampling, normalisation, and split manifest
-configs/experiments.json Planned final-study settings (not an executable runner)
-docs/contracts.md        Data, search, correctness, and measurement contracts
-docs/team-plan.md        Owners, milestones, review pairs, acceptance criteria
-data/raw/                Local source data (ignored)
-data/processed/          Local prepared datasets (ignored)
-results/raw/             Local benchmark outputs (ignored)
-results/plots/           Local plots (ignored)
-```
-
-## Start as a team
-
-Read [the contracts](docs/contracts.md), assign members A-D using [the team plan](docs/team-plan.md),
-and start all four workstreams in parallel from the existing interfaces. A prepares real
-data and validation; B optimises flat search on synthetic fixtures; C builds IVF using the
-existing scalar distance helpers; D extends benchmarking/threading against the working
-scalar index. Nobody needs to wait for A's dataset or B's SIMD implementation to begin.
-
-Run the quick start on each teammate's machine. Integrate real data and the shared optimised
-kernel at the plan's checkpoints, preserving scalar correctness. Final comparisons and
-held-out evaluation still require the completed routes, real inputs, and tuning freeze.
-
-The final study targets an existing multicore CPU machine with 8 GB RAM, under 512 MB
-search-engine memory, and roughly 3 GB disk for source data and outputs. It requires no
-GPU, paid service, cloud database, or API. Quantisation is optional and outside this starter.
-
-## Project basis
-
-Scope follows the team's one-page proposal dated 2 October 2026. The proposal is not
-redistributed here. Final deliverables are source, correctness tests, raw measurements,
-plots, report, and a demonstration. Neighbour recall does not establish human semantic relevance.
+- [Setup, sample run, and dataset download](docs/getting-started.md)
+- [Member A: creating and reading reference answers](docs/reference-answers.md)
+- [B: optimized flat results](docs/optimized-flat-results.md)
+- [Shared technical rules](docs/contracts.md)
+- [Planned experiments](configs/experiments.json) (the full experiment runner is still to be built)
