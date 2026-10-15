@@ -63,7 +63,7 @@ Keeping final inputs separate helps us judge the chosen settings on fresh exampl
 Keep downloaded data and generated answer sheets on your computer. The data folders
 are already excluded from Git.
 
-## Who does what?
+## Work split
 
 | Member | Main responsibility |
 | --- | --- |
