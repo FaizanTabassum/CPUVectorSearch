@@ -101,10 +101,15 @@ results/plots/           Local plots (ignored)
 
 ## Start as a team
 
-Read [the contracts](docs/contracts.md), agree on IDs/file format/tie handling, and assign
-members A-D using [the team plan](docs/team-plan.md). Run the quick start on each teammate's
-machine before adding an optimisation. Preserve scalar correctness while the other two
-search routes are implemented behind `SearchIndex`.
+Read [the contracts](docs/contracts.md), assign members A-D using [the team plan](docs/team-plan.md),
+and start all four workstreams in parallel from the existing interfaces. A prepares real
+data and validation; B optimises flat search on synthetic fixtures; C builds IVF using the
+existing scalar distance helpers; D extends benchmarking/threading against the working
+scalar index. Nobody needs to wait for A's dataset or B's SIMD implementation to begin.
+
+Run the quick start on each teammate's machine. Integrate real data and the shared optimised
+kernel at the plan's checkpoints, preserving scalar correctness. Final comparisons and
+held-out evaluation still require the completed routes, real inputs, and tuning freeze.
 
 The final study targets an existing multicore CPU machine with 8 GB RAM, under 512 MB
 search-engine memory, and roughly 3 GB disk for source data and outputs. It requires no

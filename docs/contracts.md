@@ -1,7 +1,31 @@
 # Shared implementation contracts
 
-These are initial decisions for the team's week-1 review. Change contracts together and
-update tests before integrating a different layout or route.
+Use the implemented starter interfaces as the initial contract so every member can start
+independently. Review them in week 1, keep compatible changes where possible, and update
+contracts and tests together before integrating an interface change.
+
+## Parallel development boundary
+
+- Everyone can generate seeded synthetic CVEC files with the existing preparation script.
+  B/C/D do not wait for A's real dataset to implement or test their components.
+- B implements a separate optimised flat route behind `SearchIndex`, preserving the
+  existing scalar route and keeping layout details private to its implementation.
+- C builds IVF with the existing `cvs::squared_l2` and `cvs::nearer` helpers, fixed centroids
+  for list/probe fixtures, and independently trained centroids for development searches.
+  It does not wait for B's SIMD or blocked storage. C initially implements its candidate
+  selection locally using the shared ordering rule; it need not wait for a top-k refactor.
+- D develops the runner and query threading against the existing `ScalarFlatIndex`.
+  Hand-written neighbour-ID sets let D validate recall independently of A's oracle work.
+- A develops dataset validation, the independent FP64 oracle, and per-subset reference
+  generation against the existing scalar route. A adds B/C integration checks as those
+  routes arrive; that later check does not block A's other work.
+
+The first all-lists IVF check compares scalar-backed IVF to scalar exhaustive search.
+At the later B/C integration checkpoint, extract or expose a shared candidate-scoring and
+selection path, keeping backend choice explicit and preserving original database IDs.
+Repeat all-lists equivalence with the same backend on both routes. Matching FP32 arithmetic
+and tie order are required; B's new storage representation must not become a prerequisite
+for C's list/probe implementation. See [team-plan.md](team-plan.md) for handoffs and owners.
 
 ## Representation and identifiers
 
@@ -49,9 +73,11 @@ space; future threading must not add unsynchronised mutable shared scratch state
 - The benchmark requires positive k <= N and nonempty queries/database. Library edge
   cases are broader than benchmark inputs.
 
-The scalar route uses O(N * D + N log k) query work and O(k) selection storage. A future
-optimised scan and IVF route must use a shared distance/selection kernel for the all-lists
-equivalence check. No fake optimised/IVF aliases exist in this starter.
+The scalar route uses O(N * D + N log k) query work and O(k) selection storage. During
+integration, the optimised scan and IVF route must use a shared distance/selection kernel
+for the final all-lists equivalence check. Their initial development can proceed separately
+against the existing scalar helpers and ordering contract. No fake optimised/IVF aliases
+exist in this starter.
 
 ## Numerical correctness
 
