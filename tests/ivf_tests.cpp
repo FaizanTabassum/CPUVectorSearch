@@ -32,16 +32,18 @@ void same_results(const cvs::SearchResult& a, const cvs::SearchResult& b, const 
 // Expected result for a partial probe, computed without IvfIndex::search:
 // rank centroids, take the first nprobe lists, brute-force their union with a full sort.
 cvs::SearchResult expected_probe(const cvs::DenseMatrix& database, const cvs::IvfIndex& index,
-                                 const std::vector<float>& query, std::size_t k, std::size_t nprobe) {
+                                 const std::vector<float>& query, std::size_t k, std::size_t nprobe,
+                                 cvs::ScoringBackend backend) {
+    const cvs::SquaredL2Scorer scorer(backend);
     std::vector<std::pair<float, std::size_t>> ranked;
     for (std::size_t c = 0; c < index.nlist(); ++c) {
-        ranked.push_back({cvs::squared_l2(index.centroids().row(c), query.data(), query.size()), c});
+        ranked.push_back({scorer(index.centroids().row(c), query.data(), query.size()), c});
     }
     std::sort(ranked.begin(), ranked.end());  // distance, then smaller centroid index
     cvs::SearchResult result;
     for (std::size_t p = 0; p < nprobe; ++p) {
         for (std::size_t id : index.list(ranked[p].second)) {
-            result.neighbors.push_back({id, cvs::squared_l2(database.row(id), query.data(), query.size())});
+            result.neighbors.push_back({id, scorer(database.row(id), query.data(), query.size())});
         }
     }
     result.candidates_examined = result.neighbors.size();
@@ -67,7 +69,8 @@ void check_partition(const cvs::DenseMatrix& database, const cvs::IvfIndex& inde
 void hand_checked_example() {
     // Left group near (0,0), right group near (10,0).
     const cvs::DenseMatrix database(2, {0,0, 1,0, 0,1, 10,0, 11,0, 10,1});
-    const cvs::IvfIndex index(database, cvs::DenseMatrix(2, {0,0, 10,0}), 1);
+    const cvs::IvfIndex index(database, cvs::DenseMatrix(2, {0,0, 10,0}), 1,
+                              cvs::ScoringBackend::scalar);
     require(index.list(0) == std::vector<std::size_t>({0, 1, 2}), "left list is wrong");
     require(index.list(1) == std::vector<std::size_t>({3, 4, 5}), "right list is wrong");
 
@@ -84,7 +87,8 @@ void ties_and_duplicates() {
     // Point 2 is equally far from both centroids: tie goes to centroid 0.
     // Points 0 and 3 are duplicates; points 1 and 4 too.
     const cvs::DenseMatrix database(1, {0, 4, 5, 0, 4, 10});
-    const cvs::IvfIndex index(database, cvs::DenseMatrix(1, {0, 10}), 2);
+    const cvs::IvfIndex index(database, cvs::DenseMatrix(1, {0, 10}), 2,
+                              cvs::ScoringBackend::scalar);
     require(index.list(0) == std::vector<std::size_t>({0, 1, 2, 3, 4}), "centroid tie not broken by smaller index");
     require(index.list(1) == std::vector<std::size_t>({5}), "right list is wrong");
     const auto result = index.search({0}, 5);
@@ -99,7 +103,8 @@ void ties_and_duplicates() {
 void empty_lists_and_edges() {
     const cvs::DenseMatrix database(2, {0,0, 1,0, 0,1});
     // Centroid 1 is far away, so its list is empty.
-    const cvs::IvfIndex index(database, cvs::DenseMatrix(2, {0,0, 100,100}), 1);
+    const cvs::IvfIndex index(database, cvs::DenseMatrix(2, {0,0, 100,100}), 1,
+                              cvs::ScoringBackend::scalar);
     require(index.list(1).empty(), "far centroid should have an empty list");
     const auto empty = index.search({100, 100}, 3);  // probes only the empty list
     require(empty.neighbors.empty() && empty.candidates_examined == 0, "empty list not handled");
@@ -110,7 +115,8 @@ void empty_lists_and_edges() {
     require(zero.neighbors.empty() && zero.candidates_examined == 0, "k=0 should return nothing");
 
     const cvs::DenseMatrix no_vectors(2, {});
-    const cvs::IvfIndex empty_index(no_vectors, cvs::DenseMatrix(2, {0,0}), 1);
+    const cvs::IvfIndex empty_index(no_vectors, cvs::DenseMatrix(2, {0,0}), 1,
+                                    cvs::ScoringBackend::scalar);
     const auto none = empty_index.search({0, 0}, 5);
     require(none.neighbors.empty() && none.candidates_examined == 0, "empty database not handled");
 }
@@ -122,7 +128,7 @@ void invalid_inputs() {
     rejects([&] { cvs::IvfIndex bad(database, cvs::DenseMatrix(3, {0,0,0}), 1); });  // dimension mismatch
     rejects([&] { cvs::IvfIndex bad(database, centroids, 0); });                     // nprobe = 0
     rejects([&] { cvs::IvfIndex bad(database, centroids, 3); });                     // nprobe > nlist
-    const cvs::IvfIndex index(database, centroids, 1);
+    const cvs::IvfIndex index(database, centroids, 1, cvs::ScoringBackend::scalar);
     rejects([&] { index.search({0, 0}, 1, 0); });
     rejects([&] { index.search({0, 0}, 1, 3); });
     rejects([&] { index.search({0}, 1); });
@@ -139,29 +145,38 @@ void randomized_against_flat() {
         std::vector<float> values(200 * dims);
         for (auto& x : values) x = coordinate(rng) / 4.0F;
         const cvs::DenseMatrix database(dims, std::move(values));
-        const cvs::ScalarFlatIndex flat(database);
-
         for (std::size_t nlist : {1U, 4U, 16U}) {
             std::vector<float> c(nlist * dims);
             for (auto& x : c) x = coordinate(rng) / 4.0F;
-            const cvs::IvfIndex index(database, cvs::DenseMatrix(dims, std::move(c)), 1);
-            check_partition(database, index);
+            const cvs::DenseMatrix centroids(dims, std::move(c));
 
-            for (int repeat = 0; repeat < 10; ++repeat) {
-                std::vector<float> query(dims);
-                for (auto& x : query) x = coordinate(rng) / 4.0F;
-                for (std::size_t k : {1U, 10U, 200U, 250U}) {
-                    // Contract check 1: probing every list == exhaustive search.
-                    const auto all = index.search(query, k, nlist);
-                    same_results(all, flat.search(query, k), "all-lists IVF differs from flat search");
-                    // Contract check 2: candidates == union of probed lists, no double counting.
-                    require(all.candidates_examined == database.rows(), "all-lists candidate count wrong");
-                    for (std::size_t nprobe = 1; nprobe <= nlist; nprobe *= 2) {
-                        const auto actual = index.search(query, k, nprobe);
-                        const auto expected = expected_probe(database, index, query, k, nprobe);
-                        same_results(actual, expected, "partial probe differs from brute force over probed lists");
-                        require(actual.candidates_examined == expected.candidates_examined,
-                                "partial probe candidate count wrong");
+            for (const auto backend : {cvs::ScoringBackend::scalar,
+                                       cvs::ScoringBackend::avx2,
+                                       cvs::ScoringBackend::automatic}) {
+                const cvs::IvfIndex index(database, centroids, 1, backend);
+                const cvs::OptimizedFlatIndex flat(database, backend);
+                check_partition(database, index);
+                require(index.backend() == flat.backend(), "IVF did not resolve the requested scoring backend");
+
+                for (int repeat = 0; repeat < 10; ++repeat) {
+                    std::vector<float> query(dims);
+                    for (auto& x : query) x = coordinate(rng) / 4.0F;
+                    for (std::size_t k : {1U, 10U, 200U, 250U}) {
+                        // Every scoring route must agree with flat search when all lists are probed.
+                        const auto all = index.search(query, k, nlist);
+                        same_results(all, flat.search(query, k),
+                                     "all-lists IVF differs from flat search with the same backend");
+                        require(all.candidates_examined == database.rows(),
+                                "all-lists candidate count wrong");
+                        for (std::size_t nprobe = 1; nprobe <= nlist; nprobe *= 2) {
+                            const auto actual = index.search(query, k, nprobe);
+                            const auto expected = expected_probe(database, index, query, k, nprobe,
+                                                                 index.backend());
+                            same_results(actual, expected,
+                                         "partial probe differs from brute force over probed lists");
+                            require(actual.candidates_examined == expected.candidates_examined,
+                                    "partial probe candidate count wrong");
+                        }
                     }
                 }
             }

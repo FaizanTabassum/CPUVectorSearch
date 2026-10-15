@@ -63,7 +63,7 @@ and tuning generation without the held-out vector file. Existing scalar oracle t
 remain enabled. FP32/FP64 can rank near-ties differently; investigate such cases rather
 than claiming universal bitwise agreement.
 
-These answers use the **scalar** backend. If B/C's shared optimised backend changes
-floating-point reduction order, identify it in metadata and regenerate its exhaustive
-answers before its final recall comparison. A's all-lists IVF equivalence check must
-use the same scoring backend on both routes. That is a later integration task.
+These answers use the **scalar** backend. If the shared AVX2 backend changes floating-point
+reduction order, identify it in metadata and regenerate its exhaustive answers before the
+final recall comparison. IVF and exhaustive search must use the same scoring backend in
+all-lists equivalence checks; the IVF route now accepts B's shared scorer for that purpose.

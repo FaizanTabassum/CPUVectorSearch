@@ -8,8 +8,10 @@
 
 namespace cvs {
 
-IvfIndex::IvfIndex(const DenseMatrix& database, DenseMatrix centroids, std::size_t default_nprobe)
-    : database_(database), centroids_(std::move(centroids)), default_nprobe_(default_nprobe) {
+IvfIndex::IvfIndex(const DenseMatrix& database, DenseMatrix centroids,
+                   std::size_t default_nprobe, ScoringBackend backend)
+    : database_(database), centroids_(std::move(centroids)),
+      default_nprobe_(default_nprobe), scorer_(backend) {
     // 1. Validate inputs.
     if (centroids_.rows() == 0) throw std::invalid_argument("IVF needs at least one centroid");
     if (centroids_.dimensions() != database_.dimensions()) {
@@ -25,9 +27,9 @@ IvfIndex::IvfIndex(const DenseMatrix& database, DenseMatrix centroids, std::size
     for (std::size_t id = 0; id < database_.rows(); ++id) {
         const float* vector = database_.row(id);
         std::size_t best = 0;
-        float best_distance = squared_l2(vector, centroids_.row(0), dims);
+        float best_distance = scorer_(vector, centroids_.row(0), dims);
         for (std::size_t c = 1; c < nlist(); ++c) {
-            const float distance = squared_l2(vector, centroids_.row(c), dims);
+            const float distance = scorer_(vector, centroids_.row(c), dims);
             if (distance < best_distance) {
                 best = c;
                 best_distance = distance;
@@ -65,18 +67,18 @@ SearchResult IvfIndex::search(const std::vector<float>& query, std::size_t k, st
     //    index here, so `nearer` breaks ties toward the smaller index.
     std::vector<Neighbor> centroid_scores(nlist());
     for (std::size_t c = 0; c < nlist(); ++c) {
-        centroid_scores[c] = {c, squared_l2(centroids_.row(c), query.data(), dimensions())};
+        centroid_scores[c] = {c, scorer_(centroids_.row(c), query.data(), dimensions())};
     }
     std::partial_sort(centroid_scores.begin(), centroid_scores.begin() + nprobe,
                       centroid_scores.end(), nearer);
 
     // 3. Scan only the probed lists, keeping the best k in a bounded heap.
-    //    Same distance call and ordering as ScalarFlatIndex.
+    //    Reuse the selected backend for exact equivalence with flat search.
     std::priority_queue<Neighbor, std::vector<Neighbor>, decltype(&nearer)> heap(&nearer);
     SearchResult result;
     for (std::size_t p = 0; p < nprobe; ++p) {
         for (std::size_t id : lists_[centroid_scores[p].id]) {
-            const Neighbor candidate{id, squared_l2(database_.row(id), query.data(), dimensions())};
+            const Neighbor candidate{id, scorer_(database_.row(id), query.data(), dimensions())};
             ++result.candidates_examined;  // database vectors only, not centroids
             if (heap.size() < k) heap.push(candidate);
             else if (nearer(candidate, heap.top())) {
