@@ -14,6 +14,8 @@ latency than the optimised exhaustive scan. A speedup is a hypothesis to test.
 - Shared index interface, row-major FP32 input storage, and deterministic distance/ID ordering.
 - Independent FP64 oracle tests plus malformed-file and end-to-end checks.
 - Seeded synthetic or local GloVe data preparation with disjoint source-row splits and checksums.
+- Exhaustive reference answer sheets for tuning queries against nested database subsets,
+  with input/output checksums and local source/build provenance.
 - Single-thread smoke benchmark reporting load/build time, median/p95 latency, batch
   throughput, candidate count, and database-vector bytes as JSON.
 - CMake/CTest and GitHub Actions for Linux/macOS Debug/Release and Linux sanitizers.
@@ -97,17 +99,21 @@ do not interpret row-disjointness as semantic deduplication.
 Train centroids on database vectors only. Select probe counts using tuning queries,
 then freeze all settings before running the held-out test queries. Use prefixes of
 the shuffled database for nested 10k/50k/100k subsets and recompute exact neighbours
-for each subset. The subset/recall runner is a future task.
+for each subset. The [reference answer workflow](docs/reference-answers.md) now generates
+scalar top-ten answers for tuning queries against all three subsets. Full recall evaluation
+and the held-out evaluation runner remain future tasks.
 
 ## Repository map
 
 ```text
 apps/benchmark.cpp       Single-thread scalar smoke benchmark
 apps/flat_ablation.cpp   B's layout/SIMD ablation benchmark
+apps/ground_truth.cpp    Exhaustive reference answers saved as CSV
 include/cvs/             Shared matrix, search, optimized-flat, and file-loading API
 src/                     Scalar/optimized-flat search and CVEC reader
 tests/                   Independent oracle, data and integration tests
 scripts/prepare_data.py  Seeded sampling, normalisation, and split manifest
+scripts/generate_reference.py  Tuning-only subset references with provenance
 configs/experiments.json Planned final-study settings (not an executable runner)
 docs/contracts.md        Data, search, correctness, and measurement contracts
 docs/team-plan.md        Owners, milestones, review pairs, acceptance criteria
