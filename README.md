@@ -40,12 +40,16 @@ with spreading multiple searches across several cores.
 
 ## What is ready?
 
-The starter has a working basic search, data-preparation tools, checks for mistakes,
-and a program that saves the correct matches as **reference answer sheets**.
-There is also a simple tool for measuring search time.
+The basic exact search and B's faster exact search are implemented. The faster search
+uses padded storage and AVX2 scoring when the processor supports it, with a scalar fallback.
+B's ablation tool compares the basic search, the new storage layout with scalar scoring,
+and the AVX2 route. Synthetic 50-dimensional benchmark results are recorded in
+[docs/optimized-flat-results.md](docs/optimized-flat-results.md); real-data validation remains.
 
-The faster full search, grouped search, work across multiple processor cores, and full
-comparison study are the next development tasks for this starter.
+The repository also includes data-preparation tools, correctness checks using an independent
+FP64 reference, a tool for saving exact reference answers, and a simple timing benchmark.
+The grouped search (IVF), searches across multiple processor cores, and the full comparison
+study are still to be implemented.
 
 ## Getting started
 
@@ -59,9 +63,22 @@ For the real study, we use GloVe 2024 Wikipedia + Gigaword, with 50 numbers per 
 - **1,000 final inputs** saved for evaluation after the settings are chosen.
 
 Keeping final inputs separate helps us judge the chosen settings on fresh examples.
-
 Keep downloaded data and generated answer sheets on your computer. The data folders
 are already excluded from Git.
+
+For B's layout/SIMD ablation, run the dedicated tool on prepared CVEC files:
+
+```sh
+./build/flat_ablation \
+  --database data/processed/smoke/database.cvec \
+  --queries data/processed/smoke/tuning.cvec \
+  --k 10 --warmup-queries 5 --repetitions 5 --data-seed 5206 \
+  --output results/raw/flat-ablation-smoke.json
+```
+
+The JSON records build time, padded index bytes, query latency and throughput, and top-k
+ranking differences against the basic search. Synthetic timings check that the tool works;
+they are not results on the real dataset.
 
 ## Work split
 
@@ -79,5 +96,6 @@ Everyone can start with the existing basic search and generated data. See the
 
 - [Setup, sample run, and dataset download](docs/getting-started.md)
 - [Member A: creating and reading reference answers](docs/reference-answers.md)
+- [B: optimized flat results](docs/optimized-flat-results.md)
 - [Shared technical rules](docs/contracts.md)
 - [Planned experiments](configs/experiments.json) (the full experiment runner is still to be built)
