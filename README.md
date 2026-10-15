@@ -48,8 +48,9 @@ and the AVX2 route. Synthetic 50-dimensional benchmark results are recorded in
 
 The repository also includes data-preparation tools, correctness checks using an independent
 FP64 reference, a tool for saving exact reference answers, and a simple timing benchmark.
-The grouped search (IVF), searches across multiple processor cores, and the full comparison
-study are still to be implemented.
+The grouped search (IVF) is implemented and can use the same scalar or AVX2 scorer as flat
+search. Searches across multiple processor cores and the full comparison study are still to
+be implemented.
 
 ## Getting started
 

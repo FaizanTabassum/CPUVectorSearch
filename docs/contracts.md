@@ -10,26 +10,25 @@ contracts and tests together before integrating an interface change.
   B/C/D do not wait for A's real dataset to implement or test their components.
 - B's `OptimizedFlatIndex` implements the shared `SearchIndex` contract while preserving
   the existing scalar route and keeping blocked storage private to its implementation.
-  `ScoringBackend` and `score_squared_l2` are available for C's later IVF integration.
-- C builds IVF with the existing `cvs::squared_l2` and `cvs::nearer` helpers, fixed centroids
-  for list/probe fixtures, and independently trained centroids for development searches.
-  It does not wait for B's SIMD or blocked storage. C initially implements its candidate
-  selection locally using the shared ordering rule; it need not wait for a top-k refactor.
+  `ScoringBackend` and `SquaredL2Scorer` are shared with IVF so both routes can use the same
+  scoring arithmetic.
+- C's IVF route accepts the shared scorer for centroid assignment, centroid ranking, and
+  candidate scoring. It keeps original database IDs and the shared deterministic ordering.
 - D develops the runner and query threading against the existing `ScalarFlatIndex`.
   Hand-written neighbour-ID sets let D validate recall independently of A's oracle work.
 - A develops dataset validation, the independent FP64 oracle, and per-subset reference
   generation against the existing scalar route. A adds B/C integration checks as those
   routes arrive; that later check does not block A's other work.
 
-The first all-lists IVF check compares scalar-backed IVF to scalar exhaustive search.
-At the later B/C integration checkpoint, C can call `score_squared_l2` with an explicit
-`ScoringBackend` for each original database ID; `OptimizedFlatIndex::backend()` reports the
-resolved backend. An unavailable AVX2 request resolves to scalar. Repeat all-lists
-equivalence with the same backend on both routes. The AVX2 scorer accumulates eight
-coordinate lanes and reduces them to one FP32 score, so near-tie rankings can differ from
-the scalar accumulation order. Preserve original IDs and deterministic `(distance, ID)`
-selection. B's blocked storage remains private and is not a prerequisite for C's list/probe
-implementation. See [team-plan.md](team-plan.md) for handoffs and owners.
+The B/C kernel checkpoint is implemented: `IvfIndex` and `OptimizedFlatIndex` accept the
+same `ScoringBackend`, and IVF uses a persistent `SquaredL2Scorer` for centroid assignment,
+query-to-centroid ranking, and candidate scoring. An unavailable AVX2 request resolves to
+scalar. All-lists equivalence must use the same resolved backend on both routes. The AVX2
+scorer accumulates eight coordinate lanes and reduces them to one FP32 score, so near-tie
+rankings can differ from scalar accumulation. Preserve original IDs and deterministic
+`(distance, ID)` selection. B's blocked storage remains private. A should repeat all-lists
+equivalence with the real-data inputs when available. See [team-plan.md](team-plan.md) for
+the remaining project handoffs.
 
 ## Optimized flat route and scoring backend
 
@@ -96,8 +95,8 @@ space; future threading must not add unsynchronised mutable shared scratch state
 Both exhaustive routes use O(N * D + N log k) query work and O(k) selection storage.
 The optimized route shares the scalar ordering rule and candidate-count contract; its AVX2
 score reduction may differ in FP32 rounding. During IVF integration, use the same explicit
-scoring backend for both routes in all-lists equivalence checks. Early IVF development can
-still proceed against the scalar helpers and ordering contract.
+scoring backend for both routes in all-lists equivalence checks. IVF can select either the
+scalar or AVX2 scorer, with automatic runtime selection available by default.
 
 ## Numerical correctness
 
