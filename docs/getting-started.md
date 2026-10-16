@@ -52,10 +52,10 @@ Preparation refuses to overwrite an existing dataset. If you have run this examp
 already, reuse its files or choose a different directory after `--output`.
 The benchmark output file itself can be replaced when that benchmark is rerun.
 
-## 4. Use the included real data
+## 4. Use local real data
 
-The prepared files and practice answer sheets are already included under
-`data/processed/glove-50d-seed5206/`. After cloning, you can use them immediately:
+If you already have the prepared dataset under `data/processed/glove-50d-seed5206/`, you can
+use it directly:
 
 ```sh
 ./build/vector_search \
@@ -64,9 +64,8 @@ The prepared files and practice answer sheets are already included under
   --k 10 --output results/raw/glove-scalar.json
 ```
 
-Check the [dataset notes](../data/processed/glove-50d-seed5206/README.md) for file checksums,
-source attribution, and the included answer sheets. The test inputs are included for
-reproducibility but stay reserved until settings are frozen.
+Keep the test inputs reserved until settings are frozen. On a fresh clone, download and
+prepare the dataset using the next sections; prepared files are ignored by Git.
 
 ### Optional: download the original source
 
@@ -89,10 +88,10 @@ unzip -p data/raw/glove.2024.wikigiga.50d.zip '*.txt' \
 If you already downloaded and extracted it, continue with your existing files.
 The commands above replace files with those names if run again.
 
-## 5. Optional: reproduce the prepared dataset
+## 5. Prepare the dataset
 
-Skip this step if you are using the included files. To repeat preparation from the original
-download, use a new output directory so the shared snapshot is preserved:
+After downloading and extracting the source, prepare the local dataset. Choose an output
+directory that does not already contain data:
 
 ```sh
 python3 scripts/prepare_data.py \
@@ -131,7 +130,7 @@ practice inputs. The final-input workflow and full recall evaluation remain futu
 | `docs/` | Guides, team plan, and shared rules |
 | `configs/` | Planned experiment settings; no full runner consumes them yet |
 | `data/raw/` | Downloaded data, kept out of Git |
-| `data/processed/` | One versioned team dataset; other prepared datasets and new runs stay local |
+| `data/processed/` | Prepared datasets and new runs, kept local and ignored by Git |
 | `results/raw/`, `results/plots/` | Local measurements and plots, kept out of Git |
 
 The final submission still needs deliberately archived results, plots, source, tests,

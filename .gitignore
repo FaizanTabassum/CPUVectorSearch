@@ -1,24 +1,9 @@
 /build*/
 /data/raw/*
 !/data/raw/.gitkeep
+# Prepared datasets and generated experiment data stay local.
 /data/processed/*
 !/data/processed/.gitkeep
-# Track this fixed team dataset; keep other prepared datasets and runs local.
-!/data/processed/glove-50d-seed5206/
-/data/processed/glove-50d-seed5206/*
-!/data/processed/glove-50d-seed5206/README.md
-!/data/processed/glove-50d-seed5206/SHA256SUMS
-!/data/processed/glove-50d-seed5206/database.cvec
-!/data/processed/glove-50d-seed5206/tuning.cvec
-!/data/processed/glove-50d-seed5206/test.cvec
-!/data/processed/glove-50d-seed5206/manifest.json
-!/data/processed/glove-50d-seed5206/validation.json
-!/data/processed/glove-50d-seed5206/reference-tuning/
-/data/processed/glove-50d-seed5206/reference-tuning/*
-!/data/processed/glove-50d-seed5206/reference-tuning/reference-manifest.json
-!/data/processed/glove-50d-seed5206/reference-tuning/top10-tuning-n10000.csv
-!/data/processed/glove-50d-seed5206/reference-tuning/top10-tuning-n50000.csv
-!/data/processed/glove-50d-seed5206/reference-tuning/top10-tuning-n100000.csv
 /results/raw/*
 !/results/raw/.gitkeep
 /results/plots/*

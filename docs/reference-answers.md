@@ -6,9 +6,8 @@ prefix. It never trains a model, chooses IVF settings, or times other routes.
 
 ## Build and generate practice answers
 
-Ready-made scalar practice answers are included in
-`data/processed/glove-50d-seed5206/reference-tuning/`. To rebuild them from the repository
-root, write into a new local directory rather than replacing those shared files:
+If you have already prepared the dataset locally, generate scalar practice answers from the
+repository root and write them into a new local directory:
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -27,7 +26,7 @@ generation/evaluation belongs after the settings freeze and is outside this tuni
 The output directory must not already exist; use `--output` with a new path for another
 run. Existing answers and dataset files are preserved.
 
-The shared answer directory and the fresh local output contain:
+The local output contains:
 
 - `top10-tuning-n10000.csv`
 - `top10-tuning-n50000.csv`
@@ -38,8 +37,7 @@ The shared answer directory and the fresh local output contain:
 
 The wrapper checks input hashes and disjoint database/tuning source rows, validates output
 shape, ID ranges, unique neighbours and ordering, and publishes only after every subset
-succeeds. The fixed team dataset and its practice answers are tracked in Git; newly
-generated outputs such as `data/processed/reference-tuning-local/` remain ignored.
+succeeds. Dataset files and generated answers under `data/processed/` are ignored by Git.
 
 ## Reading an answer sheet
 
