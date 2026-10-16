@@ -54,9 +54,10 @@ be implemented.
 
 ## Getting started
 
-Follow the [setup and first-run guide](docs/getting-started.md). The prepared real dataset
-and practice answer sheets are now included in the repository, ready to use after cloning.
-You can also try a small generated dataset first.
+Follow the [setup and first-run guide](docs/getting-started.md). Prepared datasets and
+answer sheets are kept locally under `data/processed/` and ignored by Git. A fresh clone can
+download and prepare the real dataset using the guide. You can also try a small generated
+dataset first.
 
 For the real study, we use GloVe 2024 Wikipedia + Gigaword, with 50 numbers per word:
 
@@ -64,11 +65,9 @@ For the real study, we use GloVe 2024 Wikipedia + Gigaword, with 50 numbers per 
 - **500 practice inputs** to help choose the search settings.
 - **1,000 final inputs** saved for evaluation after the settings are chosen.
 
-Keeping final inputs separate helps us judge the chosen settings on fresh examples.
-Find the shared files in [data/processed/glove-50d-seed5206](data/processed/glove-50d-seed5206/README.md).
-This fixed dataset and its practice answers are versioned so everyone uses the same inputs.
-Original downloads and new experiment outputs stay local. Keep the 1,000 final inputs
-reserved until the team's settings are frozen.
+Keeping final inputs separate helps us judge the chosen settings on fresh examples. The
+preparation guide uses seed 5206 so teammates can reproduce the same split from the same
+source file. Keep the 1,000 final inputs reserved until the team's settings are frozen.
 
 For B's layout/SIMD ablation, run the dedicated tool on prepared CVEC files:
 
