@@ -44,7 +44,8 @@ The basic exact search and B's faster exact search are implemented. The faster s
 uses padded storage and AVX2 scoring when the processor supports it, with a scalar fallback.
 B's ablation tool compares the basic search, the new storage layout with scalar scoring,
 and the AVX2 route. Synthetic 50-dimensional benchmark results are recorded in
-[docs/optimized-flat-results.md](docs/optimized-flat-results.md); real-data validation remains.
+[docs/optimized-flat-results.md](docs/optimized-flat-results.md), which now also records
+real GloVe validation on 500 tuning queries at all three database sizes.
 
 The repository also includes data-preparation tools, correctness checks using an independent
 FP64 reference, a tool for saving exact reference answers, and a simple timing benchmark.
