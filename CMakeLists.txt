@@ -30,7 +30,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 add_executable(vector_search apps/benchmark.cpp)
-target_link_libraries(vector_search PRIVATE cpu_vector_search)
+target_link_libraries(vector_search PRIVATE cvs_benchmark)
 
 # B's isolated layout/SIMD ablation; the full experiment runner is a separate task.
 add_executable(flat_ablation apps/flat_ablation.cpp)
@@ -61,5 +61,7 @@ if(BUILD_TESTING)
     add_test(NAME data_pipeline COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_prepare_data.py)
     add_test(NAME end_to_end COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_end_to_end.py $<TARGET_FILE:vector_search>)
     add_test(NAME reference_answers COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_reference.py $<TARGET_FILE:reference_search>)
+    add_test(NAME benchmark_cli COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_benchmark_cli.py
+             $<TARGET_FILE:vector_search> $<TARGET_FILE:reference_search>)
   endif()
 endif()
