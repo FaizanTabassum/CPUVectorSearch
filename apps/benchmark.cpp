@@ -1,11 +1,13 @@
 #include "cvs/benchmark.hpp"
 #include "cvs/io.hpp"
+#include "cvs/routes.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <map>
 #include <optional>
 #include <sstream>
@@ -23,8 +25,11 @@ struct Options {
     std::string query_path;
     std::string output_path;
     std::string raw_output_path;
+    std::string results_output_path;
     std::string ground_truth_path;
+    std::string route = "scalar_flat";
     std::string label;
+    cvs::bench::RouteParams params;
     std::map<std::string, std::string> metadata;
     std::size_t database_size = 0;
     std::size_t k = 10;
@@ -38,10 +43,14 @@ const char* kUsage =
     "  --database-size N        use only the first N database rows (IDs unchanged)\n"
     "  --ground-truth CSV       Member A's answer sheet for this subset; enables recall\n"
     "  --k N                    neighbours per query (default 10)\n"
+    "  --route NAME             scalar_flat (default), optimized_flat or ivf\n"
+    "  --param KEY=VALUE        route setting, repeatable (backend=scalar, lists=64, probes=8)\n"
+    "  --list-routes            print the routes this build knows and exit\n"
     "  --warmup-queries N       untimed searches before latency timing (default 10)\n"
     "  --repetitions N          timed passes over all queries (default 1)\n"
     "  --output FILE            summary JSON (stdout if omitted)\n"
     "  --raw-output FILE        per-query CSV: repetition, query, latency, candidates, recall\n"
+    "  --results-output FILE    returned neighbours in the answer-sheet CSV format\n"
     "  --label TEXT             free-text label stored in the JSON\n"
     "  --metadata KEY=VALUE     extra provenance stored in the JSON, repeatable\n";
 
@@ -64,12 +73,19 @@ bool parse_options(int argc, char** argv, Options& options) {
             std::cout << kUsage;
             return false;
         }
+        if (option == "--list-routes") {
+            for (const auto& name : cvs::bench::available_routes()) std::cout << name << '\n';
+            return false;
+        }
         if (i + 1 >= argc) throw std::invalid_argument("missing value for " + option);
         const std::string value = argv[++i];
         if (option == "--database") options.database_path = value;
         else if (option == "--queries") options.query_path = value;
         else if (option == "--output") options.output_path = value;
         else if (option == "--raw-output") options.raw_output_path = value;
+        else if (option == "--results-output") options.results_output_path = value;
+        else if (option == "--route") options.route = value;
+        else if (option == "--param") options.params.add(value);
         else if (option == "--ground-truth") options.ground_truth_path = value;
         else if (option == "--label") options.label = value;
         else if (option == "--metadata") {
@@ -175,8 +191,9 @@ int main(int argc, char** argv) {
         const auto queries = cvs::bench::copy_rows(query_matrix);
 
         const auto build_start = Clock::now();
-        const cvs::ScalarFlatIndex index(database);
+        auto route = cvs::bench::build_route(options.route, database, options.params);
         const auto build_end = Clock::now();
+        const cvs::SearchIndex& index = *route.index;
 
         const auto latency = cvs::bench::measure_latency(
             index, queries, options.k, options.warmup_queries, options.repetitions);
@@ -215,6 +232,19 @@ int main(int argc, char** argv) {
             if (!raw) throw std::runtime_error("failed to write raw output");
         }
 
+        if (!options.results_output_path.empty()) {
+            auto found = open_output(options.results_output_path);
+            found << "query_id,rank,neighbor_id,squared_distance\n"
+                  << std::setprecision(std::numeric_limits<float>::max_digits10);
+            for (std::size_t q = 0; q < results.size(); ++q) {
+                const auto& neighbors = results[q].neighbors;
+                for (std::size_t r = 0; r < neighbors.size(); ++r)
+                    found << q << ',' << r + 1 << ',' << neighbors[r].id << ','
+                          << neighbors[r].squared_distance << '\n';
+            }
+            if (!found) throw std::runtime_error("failed to write results output");
+        }
+
         std::ofstream file;
         if (!options.output_path.empty()) file = open_output(options.output_path);
         std::ostream& out = options.output_path.empty() ? std::cout : file;
@@ -222,7 +252,9 @@ int main(int argc, char** argv) {
             << "  \"schema_version\": 2,\n"
             << "  \"purpose\": \"benchmark\",\n"
             << "  \"label\": " << json_string(options.label) << ",\n"
-            << "  \"route\": \"scalar_flat\",\n"
+            << "  \"route\": " << json_string(options.route) << ",\n"
+            << "  \"route_parameters\": " << string_map(options.params.values()) << ",\n"
+            << "  \"route_metadata\": " << string_map(route.metadata) << ",\n"
             << "  \"database_file\": " << json_string(options.database_path) << ",\n"
             << "  \"query_file\": " << json_string(options.query_path) << ",\n"
             << "  \"ground_truth_file\": "

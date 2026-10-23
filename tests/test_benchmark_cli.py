@@ -58,6 +58,35 @@ with tempfile.TemporaryDirectory() as temporary:
     assert all(float(r["recall_at_k"]) == 1.0 for r in rows)
     assert all(int(r["candidates_examined"]) == 200 for r in rows)
 
+    routes = run("--list-routes").stdout.split()
+    assert routes == ["scalar_flat", "optimized_flat", "ivf"], routes
+
+    exact_routes = [("scalar_flat", []), ("optimized_flat", ["--param", "backend=scalar"]),
+                    ("ivf", ["--param", "lists=8", "--param", "probes=8", "--param", "backend=scalar"])]
+    for route, params in exact_routes:
+        out, found = root / "route.json", root / "found.csv"
+        run("--database", database, "--queries", queries, "--database-size", 200,
+            "--ground-truth", truth, "--route", route, *params, "--output", out,
+            "--results-output", found)
+        summary = json.loads(out.read_text())
+        assert summary["route"] == route and summary["recall_at_k"] == 1.0, route
+        assert summary["route_metadata"]["backend"] == "scalar", route
+        assert found.read_text() == truth.read_text(), route
+
+    out = root / "ivf.json"
+    run("--database", database, "--queries", queries, "--database-size", 200,
+        "--ground-truth", truth, "--route", "ivf", "--param", "lists=8", "--param", "probes=1",
+        "--param", "seed=7", "--output", out)
+    ivf = json.loads(out.read_text())
+    assert ivf["route_parameters"] == {"lists": "8", "probes": "1", "seed": "7"}
+    assert ivf["route_metadata"]["lists"] == "8" and ivf["route_metadata"]["probes"] == "1"
+    assert ivf["candidates_per_query"] < 200
+    assert 0.0 < ivf["recall_at_k"] <= 1.0
+
+    out = root / "fast.json"
+    run("--database", database, "--queries", queries, "--route", "optimized_flat", "--output", out)
+    assert json.loads(out.read_text())["route_metadata"]["backend"] in ("avx2", "scalar")
+
    
     rows = read_csv(truth)
     by_query = {}
@@ -109,6 +138,10 @@ with tempfile.TemporaryDirectory() as temporary:
         ["--ground-truth", truth, "--queries-dummy", "x"],         
         ["--database-size", 301],                                   
         ["--database-size", 0],
+        ["--route", "nope"],
+        ["--route", "scalar_flat", "--param", "probes=4"],
+        ["--route", "ivf", "--param", "lists=8", "--param", "probes=9"],
+        ["--param", "backend"],
         ["--repetitions", 0],
         ["--metadata", "novalue"],
     ]

@@ -22,7 +22,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   endif()
 endif()
 
-add_library(cvs_benchmark src/benchmark.cpp)
+add_library(cvs_benchmark src/benchmark.cpp src/routes.cpp)
 target_link_libraries(cvs_benchmark PUBLIC cpu_vector_search)
 set_target_properties(cvs_benchmark PROPERTIES CXX_EXTENSIONS OFF)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
