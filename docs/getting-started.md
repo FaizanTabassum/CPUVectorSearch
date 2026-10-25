@@ -54,8 +54,16 @@ The benchmark output file itself can be replaced when that benchmark is rerun.
 
 ## 4. Use local real data
 
-If you already have the prepared dataset under `data/processed/glove-50d-seed5206/`, you can
-use it directly:
+To obtain the exact prepared dataset and practice answers used by Member A, run:
+
+```sh
+python3 scripts/restore_prepared_data.py
+```
+
+The command retrieves the pinned Git snapshot if needed and verifies all file checksums.
+An identical existing dataset is verified and reused; different existing files are left
+untouched with an error. Use `--output` with a new path for a separate copy.
+The restored files stay local and ignored by Git. You can then use them directly:
 
 ```sh
 ./build/vector_search \
@@ -64,8 +72,10 @@ use it directly:
   --k 10 --output results/raw/glove-scalar.json
 ```
 
-Keep the test inputs reserved until settings are frozen. On a fresh clone, download and
-prepare the dataset using the next sections; prepared files are ignored by Git.
+Keep the test inputs reserved until settings are frozen. The record is
+`configs/evaluation-freeze.json`, initially marked pending; see the
+[freeze guide](evaluation-freeze.md). To reproduce selection from the original Stanford
+source instead, follow the optional download and preparation steps below.
 
 ### Optional: download the original source
 

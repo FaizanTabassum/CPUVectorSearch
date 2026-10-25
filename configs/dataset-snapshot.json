@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "name": "glove-50d-seed5206",
+  "source_repository": "https://github.com/FaizanTabassum/CPUVectorSearch.git",
+  "source_commit": "515933bbe1fcea37152f7de689325f69f6e42f06",
+  "source_path": "data/processed/glove-50d-seed5206",
+  "default_output": "data/processed/glove-50d-seed5206",
+  "files": {
+    "README.md": {
+      "bytes": 3318,
+      "sha256": "3c96f7e64d2be95149c59feee466b1795a88c32aa55642d26cdc8824207a45cb"
+    },
+    "SHA256SUMS": {
+      "bytes": 901,
+      "sha256": "056a5eecea3975bb24a07f79075831015b1941c9e3a61e539a5ecd9598c28833"
+    },
+    "database.cvec": {
+      "bytes": 20000016,
+      "sha256": "c5491db56eed7d3cd5990b2c61e872199e6b724a8b6a4bcf899310dba9da1b9d"
+    },
+    "manifest.json": {
+      "bytes": 1638929,
+      "sha256": "68d4ffa78af5de689324d959b95685d43b0f42a714b3a6956af0bf7e437857e6"
+    },
+    "reference-tuning/reference-manifest.json": {
+      "bytes": 2659,
+      "sha256": "cebbfd258b1060fd38428578e1a83f1791ad83345a7b1ec6998f50a6dd294077"
+    },
+    "reference-tuning/top10-tuning-n10000.csv": {
+      "bytes": 112829,
+      "sha256": "bebc5ef35148dad51a23090e77cd1de4c3f579c6e21252d914a7fa360287a945"
+    },
+    "reference-tuning/top10-tuning-n100000.csv": {
+      "bytes": 118350,
+      "sha256": "66acaf40b34b16e2d56d89bd9995d4b4261ef61fd298121a00fd3d72e883b115"
+    },
+    "reference-tuning/top10-tuning-n50000.csv": {
+      "bytes": 117690,
+      "sha256": "160400ce4b4ec14e565e6f27edfa7995c048429c483ee10679af3b7aa71da5cb"
+    },
+    "test.cvec": {
+      "bytes": 200016,
+      "sha256": "1ec98e6b258c7029d577926b2e2ab8951675848371100d0654923bcb5ffdfd80"
+    },
+    "tuning.cvec": {
+      "bytes": 100016,
+      "sha256": "8cc4b7b5ab65017fd30aa06de2d20294969f8b91a7b9658e54526604fbba4655"
+    },
+    "validation.json": {
+      "bytes": 1088,
+      "sha256": "292f18f337adcd415de36560c881a3a773918f0afa26b93ecba86fb78564c768"
+    }
+  }
+}

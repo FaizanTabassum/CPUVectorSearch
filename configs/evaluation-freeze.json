@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "status": "pending",
+  "note": "Planning record only. Final settings have not been chosen or frozen. Do not run held-out evaluation yet.",
+  "frozen_at_utc": null,
+  "frozen_code_commit": null,
+  "dataset_snapshot": "configs/dataset-snapshot.json",
+  "dataset_manifest_sha256": "68d4ffa78af5de689324d959b95685d43b0f42a714b3a6956af0bf7e437857e6",
+  "database_sizes": [
+    10000,
+    50000,
+    100000
+  ],
+  "k": 10,
+  "minimum_recall_at_10": 0.95,
+  "selected_ivf_configurations": [],
+  "scoring_backend": null,
+  "reference_manifests": [],
+  "timing_protocol": null,
+  "correctness_evidence": null,
+  "tuning_evidence": null
+}

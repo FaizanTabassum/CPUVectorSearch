@@ -59,6 +59,7 @@ if(BUILD_TESTING)
   find_package(Python3 COMPONENTS Interpreter)
   if(Python3_FOUND)
     add_test(NAME data_pipeline COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_prepare_data.py)
+    add_test(NAME dataset_restore COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_restore_prepared_data.py)
     add_test(NAME end_to_end COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_end_to_end.py $<TARGET_FILE:vector_search>)
     add_test(NAME reference_answers COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_reference.py $<TARGET_FILE:reference_search>)
     add_test(NAME benchmark_cli COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_benchmark_cli.py

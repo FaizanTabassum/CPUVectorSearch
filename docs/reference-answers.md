@@ -4,7 +4,27 @@ An answer sheet records the ten database entries numerically closest to each inp
 The generator uses `ScalarFlatIndex` and checks every vector in the selected database
 prefix. It never trains a model, chooses IVF settings, or times other routes.
 
-## Build and generate practice answers
+## Get the original practice answers
+
+From the repository root:
+
+```sh
+python3 scripts/restore_prepared_data.py
+```
+
+This restores the previously validated dataset and all three answer sheets from the
+pinned snapshot in `configs/dataset-snapshot.json`. On a shallow clone it fetches the
+older snapshot first. It verifies every file's checksum, preserves different existing
+files, and leaves the restored files ignored by Git.
+
+The canonical answer folder is `data/processed/glove-50d-seed5206/reference-tuning/`.
+Its files are `top10-tuning-n10000.csv`, `top10-tuning-n50000.csv`, and
+`top10-tuning-n100000.csv`, plus `reference-manifest.json`.
+
+The pending freeze record lives at `configs/evaluation-freeze.json`.
+See [the freeze guide](evaluation-freeze.md) for what must be agreed before final testing.
+
+## Build and regenerate practice answers
 
 If you have already prepared the dataset locally, generate scalar practice answers from the
 repository root and write them into a new local directory:

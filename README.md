@@ -55,10 +55,10 @@ be implemented.
 
 ## Getting started
 
-Follow the [setup and first-run guide](docs/getting-started.md). Prepared datasets and
-answer sheets are kept locally under `data/processed/` and ignored by Git. A fresh clone can
-download and prepare the real dataset using the guide. You can also try a small generated
-dataset first.
+Follow the [setup and first-run guide](docs/getting-started.md). Run
+`python3 scripts/restore_prepared_data.py` to retrieve the exact prepared dataset and
+practice answer sheets from our pinned snapshot. They stay local under `data/processed/`
+and ignored by Git. You can also try a small generated dataset first.
 
 For the real study, we use GloVe 2024 Wikipedia + Gigaword, with 50 numbers per word:
 
@@ -98,6 +98,7 @@ Everyone can start with the existing basic search and generated data. See the
 
 ## More help
 
+- [Settings freeze and final-evaluation gate](docs/evaluation-freeze.md)
 - [Setup, sample run, and dataset download](docs/getting-started.md)
 - [Member A: creating and reading reference answers](docs/reference-answers.md)
 - [B: optimized flat results](docs/optimized-flat-results.md)
