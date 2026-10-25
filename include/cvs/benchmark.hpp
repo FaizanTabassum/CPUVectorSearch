@@ -11,6 +11,7 @@
 
 #include <chrono>
 #include <cstddef>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -87,5 +88,17 @@ struct LatencyRun {
 LatencyRun measure_latency(const SearchIndex& index,
                            const std::vector<std::vector<float>>& queries,
                            std::size_t k, std::size_t warmup, std::size_t repetitions);
+
+struct MemorySnapshot {
+    std::optional<std::size_t> current_rss_bytes;
+    std::optional<std::size_t> peak_rss_bytes;
+};
+
+MemorySnapshot read_memory();
+bool reset_peak_memory();
+const char* memory_method();
+
+std::string cpu_model();
+std::size_t hardware_threads();
 
 } // namespace cvs::bench

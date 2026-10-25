@@ -53,6 +53,11 @@ with tempfile.TemporaryDirectory() as temporary:
     assert summary["batch_queries_per_second"] > 0
     assert summary["latency_p99_ms"] >= summary["latency_p95_ms"] >= summary["latency_median_ms"]
     assert summary["metadata"] == {"split": "tuning"}
+    assert summary["hardware_threads"] >= 0
+    assert set(summary["environment"]) >= {"operating_system", "cpu_model", "compiler", "build_type"}
+    assert set(summary["memory"]) >= {"method", "rss_after_load_bytes", "peak_rss_bytes"}
+    if sys.platform.startswith("linux") or sys.platform in ("darwin", "win32"):
+        assert summary["peak_memory_bytes"] > summary["database_vector_bytes"]
     rows = read_csv(raw)
     assert len(rows) == 24 and {r["repetition"] for r in rows} == {"0", "1"}
     assert all(float(r["recall_at_k"]) == 1.0 for r in rows)

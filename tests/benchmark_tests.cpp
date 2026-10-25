@@ -275,6 +275,26 @@ void test_route_registry() {
     cvs::bench::RouteParams zero({{"lists", "0"}});
     check_throws([&] { (void)zero.positive_integer("lists", 1); }, "zero is not positive");
 }
+
+void test_memory_and_machine() {
+    const auto before = cvs::bench::read_memory();
+#if defined(__linux__) || defined(__APPLE__) || defined(_WIN32)
+    check(before.peak_rss_bytes.has_value() && *before.peak_rss_bytes > 0, "peak memory readable");
+#endif
+#if defined(__linux__) || defined(_WIN32)
+    check(before.current_rss_bytes.has_value(), "current memory readable");
+    std::vector<char> block(32u << 20, 1);
+    for (std::size_t i = 0; i < block.size(); i += 4096) block[i] = static_cast<char>(i);
+    const auto after = cvs::bench::read_memory();
+    check(*after.peak_rss_bytes >= *before.current_rss_bytes + (24u << 20),
+          "peak memory grows after touching 32 MB");
+    volatile char keep = block[12345];
+    (void)keep;
+#endif
+    (void)cvs::bench::reset_peak_memory();
+    check(std::string(cvs::bench::memory_method()).size() > 10, "memory method described");
+    check(!cvs::bench::cpu_model().empty(), "cpu model reported");
+}
 } 
 
 int main() {
@@ -286,6 +306,7 @@ int main() {
     test_latency_records();
     test_recall_of_an_approximate_route();
     test_route_registry();
+    test_memory_and_machine();
     if (failures != 0) {
         std::cerr << failures << " benchmark harness check(s) failed\n";
         return 1;

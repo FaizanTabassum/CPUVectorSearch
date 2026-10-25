@@ -143,6 +143,49 @@ std::string string_map(const std::map<std::string, std::string>& values) {
     return out + "}";
 }
 
+template <typename T>
+std::string optional_number(const std::optional<T>& value) {
+    return value ? number(static_cast<double>(*value)) : "null";
+}
+
+const char* operating_system() {
+#if defined(__linux__)
+    return "linux";
+#elif defined(__APPLE__)
+    return "macos";
+#elif defined(_WIN32)
+    return "windows";
+#else
+    return "unknown";
+#endif
+}
+
+const char* architecture() {
+#if defined(__x86_64__) || defined(_M_X64)
+    return "x86_64";
+#elif defined(__aarch64__) || defined(_M_ARM64)
+    return "arm64";
+#else
+    return "unknown";
+#endif
+}
+
+const char* build_type() {
+#if defined(NDEBUG)
+    return "release";
+#else
+    return "debug";
+#endif
+}
+
+std::string compiler() {
+#if defined(__VERSION__)
+    return __VERSION__;
+#else
+    return "unknown";
+#endif
+}
+
 std::ofstream open_output(const std::string& path) {
     std::ofstream file(path);
     if (!file) throw std::runtime_error("cannot create output: " + path);
@@ -190,9 +233,13 @@ int main(int argc, char** argv) {
         }
         const auto queries = cvs::bench::copy_rows(query_matrix);
 
+        const auto after_load = cvs::bench::read_memory();
+        const bool peak_reset = cvs::bench::reset_peak_memory();
+
         const auto build_start = Clock::now();
         auto route = cvs::bench::build_route(options.route, database, options.params);
         const auto build_end = Clock::now();
+        const auto after_build = cvs::bench::read_memory();
         const cvs::SearchIndex& index = *route.index;
 
         const auto latency = cvs::bench::measure_latency(
@@ -213,6 +260,12 @@ int main(int argc, char** argv) {
         const auto batch_end = Clock::now();
         const double batch_ms = milliseconds(batch_start, batch_end);
         if (batch_ms <= 0) throw std::runtime_error("timer resolution too coarse for batch");
+
+        const auto final_memory = cvs::bench::read_memory();
+        std::optional<std::size_t> index_delta;
+        if (after_load.current_rss_bytes && after_build.current_rss_bytes)
+            index_delta = *after_build.current_rss_bytes >= *after_load.current_rss_bytes
+                ? *after_build.current_rss_bytes - *after_load.current_rss_bytes : 0;
 
         double checksum = 0.0;
         for (const auto& result : results)
@@ -282,7 +335,23 @@ int main(int argc, char** argv) {
             << "  \"recall_perfect_queries\": "
             << (recall ? std::to_string(recall->perfect_queries) : "null") << ",\n"
             << "  \"database_vector_bytes\": " << database.values().size() * sizeof(float) << ",\n"
-            << "  \"peak_memory_bytes\": null,\n"
+            << "  \"peak_memory_bytes\": " << optional_number(final_memory.peak_rss_bytes) << ",\n"
+            << "  \"memory\": {\n"
+            << "    \"method\": " << json_string(cvs::bench::memory_method()) << ",\n"
+            << "    \"rss_after_load_bytes\": " << optional_number(after_load.current_rss_bytes) << ",\n"
+            << "    \"peak_rss_after_load_bytes\": " << optional_number(after_load.peak_rss_bytes) << ",\n"
+            << "    \"rss_after_build_bytes\": " << optional_number(after_build.current_rss_bytes) << ",\n"
+            << "    \"index_rss_delta_bytes\": " << optional_number(index_delta) << ",\n"
+            << "    \"peak_reset_after_load\": " << (peak_reset ? "true" : "false") << ",\n"
+            << "    \"peak_rss_bytes\": " << optional_number(final_memory.peak_rss_bytes) << "\n"
+            << "  },\n"
+            << "  \"hardware_threads\": " << cvs::bench::hardware_threads() << ",\n"
+            << "  \"environment\": {\"operating_system\": " << json_string(operating_system())
+            << ", \"architecture\": " << json_string(architecture())
+            << ", \"cpu_model\": " << json_string(cvs::bench::cpu_model())
+            << ", \"compiler\": " << json_string(compiler())
+            << ", \"build_type\": " << json_string(build_type())
+            << ", \"fp_contract\": \"off\"},\n"
             << "  \"metadata\": " << string_map(options.metadata) << ",\n"
             << "  \"checksum\": " << number(checksum) << "\n"
             << "}\n";
