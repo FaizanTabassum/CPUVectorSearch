@@ -1,6 +1,7 @@
 
 
 #include "cvs/benchmark.hpp"
+#include "cvs/routes.hpp"
 
 #include <cmath>
 #include <cstdio>
@@ -213,6 +214,87 @@ void test_recall_of_an_approximate_route() {
     check(close(exact_summary.mean, 1.0), "exact route scores 1.0 against itself");
 }
 
+
+void test_route_registry() {
+    const auto db = line_database(16);
+    const auto names = cvs::bench::available_routes();
+    check(names.size() == 3, "scalar_flat, optimized_flat and ivf registered");
+    for (const auto& name : names) {
+        auto route = name == "ivf"
+            ? cvs::bench::build_route(name, db, cvs::bench::RouteParams({{"lists", "4"}, {"probes", "4"}}))
+            : cvs::bench::build_route(name, db, {});
+        check(route.index && route.index->dimensions() == 2, name + " builds");
+        check(route.metadata.count("backend") == 1, name + " reports its backend");
+        const auto result = route.index->search({3.0F, 0.0F}, 3);
+        check(result.neighbors.size() == 3 && result.neighbors[0].id == 3,
+              name + " finds the right point");
+    }
+
+    const cvs::ScalarFlatIndex exact(db);
+    auto all_lists = cvs::bench::build_route("ivf", db, cvs::bench::RouteParams(
+        {{"lists", "4"}, {"probes", "4"}, {"backend", "scalar"}}));
+    auto one_list = cvs::bench::build_route("ivf", db, cvs::bench::RouteParams(
+        {{"lists", "4"}, {"probes", "1"}, {"backend", "scalar"}}));
+    check(all_lists.metadata["lists"] == "4" && all_lists.metadata["probes"] == "4",
+          "ivf reports lists and probes");
+    for (float x : {0.2F, 7.6F, 15.0F}) {
+        const auto want = exact.search({x, 0.0F}, 5);
+        const auto got = all_lists.index->search({x, 0.0F}, 5);
+        bool same = want.neighbors.size() == got.neighbors.size();
+        for (std::size_t i = 0; same && i < want.neighbors.size(); ++i)
+            same = want.neighbors[i].id == got.neighbors[i].id &&
+                   want.neighbors[i].squared_distance == got.neighbors[i].squared_distance;
+        check(same, "ivf probing every list matches exhaustive search");
+        check(one_list.index->search({x, 0.0F}, 5).candidates_examined < 16,
+              "ivf with one probe scores fewer vectors");
+    }
+
+    auto scalar_backend = cvs::bench::build_route(
+        "optimized_flat", db, cvs::bench::RouteParams({{"backend", "scalar"}}));
+    check(scalar_backend.metadata["backend"] == "scalar", "explicit scalar backend honoured");
+
+    check_throws([&] { (void)cvs::bench::build_route("nope", db, {}); }, "unknown route");
+    check_throws([&] {
+        (void)cvs::bench::build_route("scalar_flat", db, cvs::bench::RouteParams({{"probes", "8"}}));
+    }, "scalar_flat rejects stray parameters");
+    check_throws([&] {
+        (void)cvs::bench::build_route("optimized_flat", db, cvs::bench::RouteParams({{"backend", "gpu"}}));
+    }, "bad backend name");
+    check_throws([&] {
+        (void)cvs::bench::build_route("ivf", db, cvs::bench::RouteParams({{"lists", "4"}, {"probes", "5"}}));
+    }, "ivf probes above lists");
+    check_throws([&] {
+        (void)cvs::bench::build_route("ivf", db, cvs::bench::RouteParams({{"lists", "17"}}));
+    }, "ivf lists above database rows");
+
+    cvs::bench::RouteParams params;
+    params.add("probes=8");
+    check_throws([&] { params.add("probes=9"); }, "repeated parameter");
+    check_throws([&] { params.add("novalue"); }, "parameter without '='");
+    check(params.positive_integer("probes", 1) == 8, "integer parameter");
+    cvs::bench::RouteParams zero({{"lists", "0"}});
+    check_throws([&] { (void)zero.positive_integer("lists", 1); }, "zero is not positive");
+}
+
+void test_memory_and_machine() {
+    const auto before = cvs::bench::read_memory();
+#if defined(__linux__) || defined(__APPLE__) || defined(_WIN32)
+    check(before.peak_rss_bytes.has_value() && *before.peak_rss_bytes > 0, "peak memory readable");
+#endif
+#if defined(__linux__) || defined(_WIN32)
+    check(before.current_rss_bytes.has_value(), "current memory readable");
+    std::vector<char> block(32u << 20, 1);
+    for (std::size_t i = 0; i < block.size(); i += 4096) block[i] = static_cast<char>(i);
+    const auto after = cvs::bench::read_memory();
+    check(*after.peak_rss_bytes >= *before.current_rss_bytes + (24u << 20),
+          "peak memory grows after touching 32 MB");
+    volatile char keep = block[12345];
+    (void)keep;
+#endif
+    (void)cvs::bench::reset_peak_memory();
+    check(std::string(cvs::bench::memory_method()).size() > 10, "memory method described");
+    check(!cvs::bench::cpu_model().empty(), "cpu model reported");
+}
 } 
 
 int main() {
@@ -223,6 +305,8 @@ int main() {
     test_prefix_subset_keeps_ids();
     test_latency_records();
     test_recall_of_an_approximate_route();
+    test_route_registry();
+    test_memory_and_machine();
     if (failures != 0) {
         std::cerr << failures << " benchmark harness check(s) failed\n";
         return 1;

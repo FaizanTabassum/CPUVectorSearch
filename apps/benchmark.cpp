@@ -1,11 +1,13 @@
 #include "cvs/benchmark.hpp"
 #include "cvs/io.hpp"
+#include "cvs/routes.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <map>
 #include <optional>
 #include <sstream>
@@ -23,8 +25,11 @@ struct Options {
     std::string query_path;
     std::string output_path;
     std::string raw_output_path;
+    std::string results_output_path;
     std::string ground_truth_path;
+    std::string route = "scalar_flat";
     std::string label;
+    cvs::bench::RouteParams params;
     std::map<std::string, std::string> metadata;
     std::size_t database_size = 0;
     std::size_t k = 10;
@@ -38,10 +43,14 @@ const char* kUsage =
     "  --database-size N        use only the first N database rows (IDs unchanged)\n"
     "  --ground-truth CSV       Member A's answer sheet for this subset; enables recall\n"
     "  --k N                    neighbours per query (default 10)\n"
+    "  --route NAME             scalar_flat (default), optimized_flat or ivf\n"
+    "  --param KEY=VALUE        route setting, repeatable (backend=scalar, lists=64, probes=8)\n"
+    "  --list-routes            print the routes this build knows and exit\n"
     "  --warmup-queries N       untimed searches before latency timing (default 10)\n"
     "  --repetitions N          timed passes over all queries (default 1)\n"
     "  --output FILE            summary JSON (stdout if omitted)\n"
     "  --raw-output FILE        per-query CSV: repetition, query, latency, candidates, recall\n"
+    "  --results-output FILE    returned neighbours in the answer-sheet CSV format\n"
     "  --label TEXT             free-text label stored in the JSON\n"
     "  --metadata KEY=VALUE     extra provenance stored in the JSON, repeatable\n";
 
@@ -64,12 +73,19 @@ bool parse_options(int argc, char** argv, Options& options) {
             std::cout << kUsage;
             return false;
         }
+        if (option == "--list-routes") {
+            for (const auto& name : cvs::bench::available_routes()) std::cout << name << '\n';
+            return false;
+        }
         if (i + 1 >= argc) throw std::invalid_argument("missing value for " + option);
         const std::string value = argv[++i];
         if (option == "--database") options.database_path = value;
         else if (option == "--queries") options.query_path = value;
         else if (option == "--output") options.output_path = value;
         else if (option == "--raw-output") options.raw_output_path = value;
+        else if (option == "--results-output") options.results_output_path = value;
+        else if (option == "--route") options.route = value;
+        else if (option == "--param") options.params.add(value);
         else if (option == "--ground-truth") options.ground_truth_path = value;
         else if (option == "--label") options.label = value;
         else if (option == "--metadata") {
@@ -127,6 +143,49 @@ std::string string_map(const std::map<std::string, std::string>& values) {
     return out + "}";
 }
 
+template <typename T>
+std::string optional_number(const std::optional<T>& value) {
+    return value ? number(static_cast<double>(*value)) : "null";
+}
+
+const char* operating_system() {
+#if defined(__linux__)
+    return "linux";
+#elif defined(__APPLE__)
+    return "macos";
+#elif defined(_WIN32)
+    return "windows";
+#else
+    return "unknown";
+#endif
+}
+
+const char* architecture() {
+#if defined(__x86_64__) || defined(_M_X64)
+    return "x86_64";
+#elif defined(__aarch64__) || defined(_M_ARM64)
+    return "arm64";
+#else
+    return "unknown";
+#endif
+}
+
+const char* build_type() {
+#if defined(NDEBUG)
+    return "release";
+#else
+    return "debug";
+#endif
+}
+
+std::string compiler() {
+#if defined(__VERSION__)
+    return __VERSION__;
+#else
+    return "unknown";
+#endif
+}
+
 std::ofstream open_output(const std::string& path) {
     std::ofstream file(path);
     if (!file) throw std::runtime_error("cannot create output: " + path);
@@ -174,9 +233,14 @@ int main(int argc, char** argv) {
         }
         const auto queries = cvs::bench::copy_rows(query_matrix);
 
+        const auto after_load = cvs::bench::read_memory();
+        const bool peak_reset = cvs::bench::reset_peak_memory();
+
         const auto build_start = Clock::now();
-        const cvs::ScalarFlatIndex index(database);
+        auto route = cvs::bench::build_route(options.route, database, options.params);
         const auto build_end = Clock::now();
+        const auto after_build = cvs::bench::read_memory();
+        const cvs::SearchIndex& index = *route.index;
 
         const auto latency = cvs::bench::measure_latency(
             index, queries, options.k, options.warmup_queries, options.repetitions);
@@ -197,6 +261,12 @@ int main(int argc, char** argv) {
         const double batch_ms = milliseconds(batch_start, batch_end);
         if (batch_ms <= 0) throw std::runtime_error("timer resolution too coarse for batch");
 
+        const auto final_memory = cvs::bench::read_memory();
+        std::optional<std::size_t> index_delta;
+        if (after_load.current_rss_bytes && after_build.current_rss_bytes)
+            index_delta = *after_build.current_rss_bytes >= *after_load.current_rss_bytes
+                ? *after_build.current_rss_bytes - *after_load.current_rss_bytes : 0;
+
         double checksum = 0.0;
         for (const auto& result : results)
             for (const auto& n : result.neighbors)
@@ -215,6 +285,19 @@ int main(int argc, char** argv) {
             if (!raw) throw std::runtime_error("failed to write raw output");
         }
 
+        if (!options.results_output_path.empty()) {
+            auto found = open_output(options.results_output_path);
+            found << "query_id,rank,neighbor_id,squared_distance\n"
+                  << std::setprecision(std::numeric_limits<float>::max_digits10);
+            for (std::size_t q = 0; q < results.size(); ++q) {
+                const auto& neighbors = results[q].neighbors;
+                for (std::size_t r = 0; r < neighbors.size(); ++r)
+                    found << q << ',' << r + 1 << ',' << neighbors[r].id << ','
+                          << neighbors[r].squared_distance << '\n';
+            }
+            if (!found) throw std::runtime_error("failed to write results output");
+        }
+
         std::ofstream file;
         if (!options.output_path.empty()) file = open_output(options.output_path);
         std::ostream& out = options.output_path.empty() ? std::cout : file;
@@ -222,7 +305,9 @@ int main(int argc, char** argv) {
             << "  \"schema_version\": 2,\n"
             << "  \"purpose\": \"benchmark\",\n"
             << "  \"label\": " << json_string(options.label) << ",\n"
-            << "  \"route\": \"scalar_flat\",\n"
+            << "  \"route\": " << json_string(options.route) << ",\n"
+            << "  \"route_parameters\": " << string_map(options.params.values()) << ",\n"
+            << "  \"route_metadata\": " << string_map(route.metadata) << ",\n"
             << "  \"database_file\": " << json_string(options.database_path) << ",\n"
             << "  \"query_file\": " << json_string(options.query_path) << ",\n"
             << "  \"ground_truth_file\": "
@@ -250,7 +335,23 @@ int main(int argc, char** argv) {
             << "  \"recall_perfect_queries\": "
             << (recall ? std::to_string(recall->perfect_queries) : "null") << ",\n"
             << "  \"database_vector_bytes\": " << database.values().size() * sizeof(float) << ",\n"
-            << "  \"peak_memory_bytes\": null,\n"
+            << "  \"peak_memory_bytes\": " << optional_number(final_memory.peak_rss_bytes) << ",\n"
+            << "  \"memory\": {\n"
+            << "    \"method\": " << json_string(cvs::bench::memory_method()) << ",\n"
+            << "    \"rss_after_load_bytes\": " << optional_number(after_load.current_rss_bytes) << ",\n"
+            << "    \"peak_rss_after_load_bytes\": " << optional_number(after_load.peak_rss_bytes) << ",\n"
+            << "    \"rss_after_build_bytes\": " << optional_number(after_build.current_rss_bytes) << ",\n"
+            << "    \"index_rss_delta_bytes\": " << optional_number(index_delta) << ",\n"
+            << "    \"peak_reset_after_load\": " << (peak_reset ? "true" : "false") << ",\n"
+            << "    \"peak_rss_bytes\": " << optional_number(final_memory.peak_rss_bytes) << "\n"
+            << "  },\n"
+            << "  \"hardware_threads\": " << cvs::bench::hardware_threads() << ",\n"
+            << "  \"environment\": {\"operating_system\": " << json_string(operating_system())
+            << ", \"architecture\": " << json_string(architecture())
+            << ", \"cpu_model\": " << json_string(cvs::bench::cpu_model())
+            << ", \"compiler\": " << json_string(compiler())
+            << ", \"build_type\": " << json_string(build_type())
+            << ", \"fp_contract\": \"off\"},\n"
             << "  \"metadata\": " << string_map(options.metadata) << ",\n"
             << "  \"checksum\": " << number(checksum) << "\n"
             << "}\n";

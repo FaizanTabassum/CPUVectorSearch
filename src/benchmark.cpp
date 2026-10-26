@@ -7,7 +7,22 @@
 #include <numeric>
 #include <sstream>
 #include <stdexcept>
+#include <thread>
 #include <unordered_set>
+
+#if defined(__unix__) || defined(__APPLE__)
+#include <sys/resource.h>
+#endif
+#if defined(__APPLE__)
+#include <sys/sysctl.h>
+#endif
+#if defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <psapi.h>
+#endif
 
 namespace cvs::bench {
 
@@ -213,6 +228,111 @@ LatencyRun measure_latency(const SearchIndex& index,
     run.max_ms = sorted.back();
     run.mean_candidates = candidate_total / static_cast<double>(run.records.size());
     return run;
+}
+
+namespace {
+#if defined(__linux__)
+std::optional<std::size_t> status_field_bytes(const char* name) {
+    std::ifstream status("/proc/self/status");
+    std::string key;
+    while (status >> key) {
+        if (key == name) {
+            std::size_t kilobytes = 0;
+            if (status >> kilobytes) return kilobytes * 1024;
+            return std::nullopt;
+        }
+        status.ignore(4096, '\n');
+    }
+    return std::nullopt;
+}
+#endif
+}
+
+MemorySnapshot read_memory() {
+    MemorySnapshot snapshot;
+#if defined(__linux__)
+    snapshot.current_rss_bytes = status_field_bytes("VmRSS:");
+    snapshot.peak_rss_bytes = status_field_bytes("VmHWM:");
+#elif defined(__APPLE__)
+    rusage usage{};
+    if (getrusage(RUSAGE_SELF, &usage) == 0) {
+        snapshot.peak_rss_bytes = static_cast<std::size_t>(usage.ru_maxrss);
+    }
+#elif defined(_WIN32)
+    PROCESS_MEMORY_COUNTERS counters{};
+    if (GetProcessMemoryInfo(GetCurrentProcess(), &counters, sizeof(counters))) {
+        snapshot.current_rss_bytes = static_cast<std::size_t>(counters.WorkingSetSize);
+        snapshot.peak_rss_bytes = static_cast<std::size_t>(counters.PeakWorkingSetSize);
+    }
+#endif
+    return snapshot;
+}
+
+bool reset_peak_memory() {
+#if defined(__linux__)
+    std::ofstream clear("/proc/self/clear_refs");
+    if (!clear) return false;
+    clear << "5";
+    clear.flush();
+    if (!clear) return false;
+    const auto snapshot = read_memory();
+    return snapshot.current_rss_bytes && snapshot.peak_rss_bytes &&
+           *snapshot.peak_rss_bytes <= *snapshot.current_rss_bytes + 64 * 1024;
+#else
+    return false;
+#endif
+}
+
+const char* memory_method() {
+#if defined(__linux__)
+    return "linux /proc/self/status VmRSS and VmHWM (resident set size); "
+           "VmHWM reset through /proc/self/clear_refs after loading when the kernel allows it";
+#elif defined(__APPLE__)
+    return "macOS getrusage ru_maxrss (whole-process peak resident set size)";
+#elif defined(_WIN32)
+    return "windows GetProcessMemoryInfo WorkingSetSize and PeakWorkingSetSize "
+           "(whole-process peak; cannot be reset after loading)";
+#else
+    return "unsupported platform";
+#endif
+}
+
+std::string cpu_model() {
+#if defined(__linux__)
+    std::ifstream info("/proc/cpuinfo");
+    std::string line;
+    while (std::getline(info, line)) {
+        for (const char* key : {"model name", "Model", "Hardware"}) {
+            if (line.rfind(key, 0) == 0) {
+                const auto colon = line.find(':');
+                if (colon != std::string::npos) {
+                    auto value = line.substr(colon + 1);
+                    value.erase(0, value.find_first_not_of(" \t"));
+                    if (!value.empty()) return value;
+                }
+            }
+        }
+    }
+#elif defined(__APPLE__)
+    char buffer[256] = {};
+    std::size_t size = sizeof(buffer);
+    if (sysctlbyname("machdep.cpu.brand_string", buffer, &size, nullptr, 0) == 0) return buffer;
+#elif defined(_WIN32)
+    char buffer[256] = {};
+    DWORD size = sizeof(buffer);
+    if (RegGetValueA(HKEY_LOCAL_MACHINE, "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
+                     "ProcessorNameString", RRF_RT_REG_SZ, nullptr, buffer, &size) == ERROR_SUCCESS) {
+        std::string value(buffer);
+        value.erase(0, value.find_first_not_of(" \t"));
+        while (!value.empty() && value.back() == ' ') value.pop_back();
+        if (!value.empty()) return value;
+    }
+#endif
+    return "unknown";
+}
+
+std::size_t hardware_threads() {
+    return static_cast<std::size_t>(std::thread::hardware_concurrency());
 }
 
 } 
