@@ -3,6 +3,7 @@
 #include "cvs/benchmark.hpp"
 #include "cvs/routes.hpp"
 
+#include <atomic>
 #include <cmath>
 #include <cstdio>
 #include <fstream>
@@ -295,6 +296,91 @@ void test_memory_and_machine() {
     check(std::string(cvs::bench::memory_method()).size() > 10, "memory method described");
     check(!cvs::bench::cpu_model().empty(), "cpu model reported");
 }
+
+class ThrowingIndex final : public cvs::SearchIndex {
+public:
+    std::size_t dimensions() const noexcept override { return 1; }
+    cvs::SearchResult search(const std::vector<float>& q, std::size_t) const override {
+        if (q[0] == 7.0F) throw std::runtime_error("boom");
+        return {};
+    }
+};
+
+class CountingIndex final : public cvs::SearchIndex {
+public:
+    explicit CountingIndex(std::size_t n) : counts_(n) {}
+    std::size_t dimensions() const noexcept override { return 1; }
+    cvs::SearchResult search(const std::vector<float>& q, std::size_t) const override {
+        counts_[static_cast<std::size_t>(q[0])].fetch_add(1);
+        cvs::SearchResult r;
+        r.neighbors.push_back({static_cast<std::size_t>(q[0]), q[0]});
+        r.candidates_examined = 1;
+        return r;
+    }
+    std::size_t count(std::size_t i) const { return counts_[i].load(); }
+private:
+    mutable std::vector<std::atomic<std::size_t>> counts_;
+};
+
+void test_thread_caps() {
+    using cvs::bench::cap_thread_counts;
+    check(cap_thread_counts({1, 2, 4}, 2) == std::vector<std::size_t>{1, 2}, "cap at 2 cores");
+    check(cap_thread_counts({1, 2, 4}, 8) == std::vector<std::size_t>{1, 2, 4}, "no cap needed");
+    check(cap_thread_counts({1, 2, 2, 4}, 0) == std::vector<std::size_t>{1, 2, 4}, "unknown hardware");
+    check(cap_thread_counts({4, 8}, 2) == std::vector<std::size_t>{1}, "falls back to one thread");
+    check_throws([] { (void)cap_thread_counts({0}, 4); }, "zero threads");
+}
+
+void test_threaded_search_matches_sequential() {
+    std::vector<float> values{0.5F, 0.5F, 0.5F, 0.5F};
+    for (int i = 0; i < 300; ++i) {
+        values.push_back(std::sin(0.37F * i));
+        values.push_back(std::cos(0.11F * i));
+    }
+    const cvs::DenseMatrix db(2, values);
+    const cvs::ScalarFlatIndex index(db);
+    std::vector<std::vector<float>> queries;
+    for (int i = 0; i < 64; ++i) queries.push_back({std::cos(0.7F * i), std::sin(0.3F * i)});
+    queries.push_back({0.5F, 0.5F});
+
+    const auto one = cvs::bench::search_all(index, queries, 5, 1);
+    for (std::size_t threads : {2, 3, 4, 8}) {
+        const auto many = cvs::bench::search_all(index, queries, 5, threads);
+        check(cvs::bench::same_results(one, many),
+              "results with " + std::to_string(threads) + " threads match one thread");
+    }
+    for (std::size_t q = 0; q < queries.size(); ++q)
+        check(cvs::bench::same_results({one[q]}, {index.search(queries[q], 5)}),
+              "query " + std::to_string(q) + " result is in its own slot");
+    check(one.back().neighbors[0].id == 0 && one.back().neighbors[1].id == 1,
+          "duplicate vectors tie-break on smaller ID");
+}
+
+void test_each_query_answered_once() {
+    const std::size_t n = 257;
+    std::vector<std::vector<float>> queries;
+    for (std::size_t i = 0; i < n; ++i) queries.push_back({static_cast<float>(i)});
+    for (std::size_t threads : {1, 2, 4}) {
+        CountingIndex index(n);
+        const auto batch = cvs::bench::measure_batch(index, queries, 1, threads, 3);
+        bool exact = true;
+        for (std::size_t i = 0; i < n; ++i) exact = exact && index.count(i) == 3;
+        check(exact, "every query answered once per repetition with " + std::to_string(threads) + " threads");
+        std::size_t total = 0;
+        for (auto c : batch.queries_per_thread) total += c;
+        check(total == n && batch.queries_per_thread.size() == threads, "per-thread counts add up");
+        check(batch.wall_ms.size() == 3 && batch.queries_per_second > 0, "batch timing recorded");
+        check(batch.best_queries_per_second >= batch.queries_per_second, "best >= median throughput");
+    }
+}
+
+void test_worker_exception_propagates() {
+    ThrowingIndex index;
+    std::vector<std::vector<float>> queries;
+    for (int i = 0; i < 20; ++i) queries.push_back({static_cast<float>(i)});
+    check_throws([&] { (void)cvs::bench::search_all(index, queries, 1, 4); }, "search_all rethrows");
+    check_throws([&] { (void)cvs::bench::measure_batch(index, queries, 1, 4, 1); }, "batch rethrows");
+}
 } 
 
 int main() {
@@ -307,6 +393,10 @@ int main() {
     test_recall_of_an_approximate_route();
     test_route_registry();
     test_memory_and_machine();
+    test_thread_caps();
+    test_threaded_search_matches_sequential();
+    test_each_query_answered_once();
+    test_worker_exception_propagates();
     if (failures != 0) {
         std::cerr << failures << " benchmark harness check(s) failed\n";
         return 1;
