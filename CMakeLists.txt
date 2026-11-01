@@ -68,5 +68,7 @@ if(BUILD_TESTING)
     add_test(NAME reference_answers COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_reference.py $<TARGET_FILE:reference_search>)
     add_test(NAME benchmark_cli COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_benchmark_cli.py
              $<TARGET_FILE:vector_search> $<TARGET_FILE:reference_search>)
+    add_test(NAME benchmark_driver COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_run_benchmarks.py
+             $<TARGET_FILE:vector_search> $<TARGET_FILE:reference_search>)
   endif()
 endif()
