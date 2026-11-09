@@ -254,9 +254,6 @@ def make_plots(rows, out_dir, target):
             ax.plot([p["latency_median_ms"] for p in pts], [p["recall_at_k"] for p in pts],
                     marker="o", markersize=6, color=IVF_LIST_COLOURS[i % len(IVF_LIST_COLOURS)],
                     label=f"ivf, {int(lists)} lists (more probes to the right)")
-            last = pts[-1]
-            ax.annotate(f"{int(lists)} lists", (last["latency_median_ms"], last["recall_at_k"]),
-                        textcoords="offset points", xytext=(4, -10), fontsize=8, color=MUTED)
         for r in at_size:
             if r["route"] == "ivf":
                 continue
