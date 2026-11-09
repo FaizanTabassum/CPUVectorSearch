@@ -35,6 +35,8 @@ struct Options {
     std::size_t k = 10;
     std::size_t warmup_queries = 10;
     std::size_t repetitions = 1;
+    std::size_t batch_repetitions = 3;
+    std::vector<std::size_t> threads{1};
 };
 
 const char* kUsage =
@@ -48,6 +50,8 @@ const char* kUsage =
     "  --list-routes            print the routes this build knows and exit\n"
     "  --warmup-queries N       untimed searches before latency timing (default 10)\n"
     "  --repetitions N          timed passes over all queries (default 1)\n"
+    "  --threads LIST           batch thread counts, e.g. 1,2,4 (capped by hardware)\n"
+    "  --batch-repetitions N    batch passes per thread count; median reported (default 3)\n"
     "  --output FILE            summary JSON (stdout if omitted)\n"
     "  --raw-output FILE        per-query CSV: repetition, query, latency, candidates, recall\n"
     "  --results-output FILE    returned neighbours in the answer-sheet CSV format\n"
@@ -64,6 +68,15 @@ std::size_t parse_count(const std::string& value, const char* name, bool allow_z
         throw std::invalid_argument(std::string(name) + " out of range");
     }
     return converted;
+}
+
+std::vector<std::size_t> parse_thread_list(const std::string& text) {
+    std::vector<std::size_t> counts;
+    std::stringstream stream(text);
+    std::string item;
+    while (std::getline(stream, item, ',')) counts.push_back(parse_count(item, "thread count"));
+    if (counts.empty()) throw std::invalid_argument("--threads needs at least one count");
+    return counts;
 }
 
 bool parse_options(int argc, char** argv, Options& options) {
@@ -98,6 +111,9 @@ bool parse_options(int argc, char** argv, Options& options) {
         else if (option == "--k") options.k = parse_count(value, "k");
         else if (option == "--warmup-queries") options.warmup_queries = parse_count(value, "warmup", true);
         else if (option == "--repetitions") options.repetitions = parse_count(value, "repetitions");
+        else if (option == "--batch-repetitions")
+            options.batch_repetitions = parse_count(value, "batch repetitions");
+        else if (option == "--threads") options.threads = parse_thread_list(value);
         else throw std::invalid_argument("unknown option: " + option);
     }
     if (options.database_path.empty() || options.query_path.empty()) {
@@ -141,6 +157,14 @@ std::string string_map(const std::map<std::string, std::string>& values) {
         first = false;
     }
     return out + "}";
+}
+
+template <typename T>
+std::string number_list(const std::vector<T>& values) {
+    std::string out = "[";
+    for (std::size_t i = 0; i < values.size(); ++i)
+        out += (i ? ", " : "") + number(static_cast<double>(values[i]));
+    return out + "]";
 }
 
 template <typename T>
@@ -245,21 +269,27 @@ int main(int argc, char** argv) {
         const auto latency = cvs::bench::measure_latency(
             index, queries, options.k, options.warmup_queries, options.repetitions);
 
-        std::vector<cvs::SearchResult> results;
-        results.reserve(queries.size());
-        for (const auto& query : queries) results.push_back(index.search(query, options.k));
+        const auto results = cvs::bench::search_all(index, queries, options.k, 1);
         std::optional<cvs::bench::RecallSummary> recall;
         if (truth) recall = cvs::bench::evaluate_recall(results, *truth, options.k);
 
-        volatile double sink = 0.0;
-        const auto batch_start = Clock::now();
-        for (const auto& query : queries) {
-            const auto result = index.search(query, options.k);
-            for (const auto& n : result.neighbors) sink = sink + n.squared_distance;
+        const auto hardware = cvs::bench::hardware_threads();
+        const auto thread_counts = cvs::bench::cap_thread_counts(options.threads, hardware);
+        std::vector<cvs::bench::BatchRun> batches;
+        bool threaded_match = true;
+        for (const auto threads : thread_counts) {
+            batches.push_back(cvs::bench::measure_batch(index, queries, options.k, threads,
+                                                        options.batch_repetitions));
+            if (threads > 1) {
+                const auto threaded = cvs::bench::search_all(index, queries, options.k, threads);
+                threaded_match = threaded_match && cvs::bench::same_results(results, threaded);
+            }
         }
-        const auto batch_end = Clock::now();
-        const double batch_ms = milliseconds(batch_start, batch_end);
-        if (batch_ms <= 0) throw std::runtime_error("timer resolution too coarse for batch");
+        if (!threaded_match)
+            std::cerr << "warning: multi-threaded results differ from single-thread results\n";
+        double one_thread_qps = 0.0;
+        for (const auto& batch : batches)
+            if (batch.threads == 1) one_thread_qps = batch.queries_per_second;
 
         const auto final_memory = cvs::bench::read_memory();
         std::optional<std::size_t> index_delta;
@@ -320,6 +350,7 @@ int main(int argc, char** argv) {
             << "  \"threads\": 1,\n"
             << "  \"warmup_queries\": " << std::min(options.warmup_queries, queries.size()) << ",\n"
             << "  \"repetitions\": " << options.repetitions << ",\n"
+            << "  \"batch_repetitions\": " << options.batch_repetitions << ",\n"
             << "  \"load_ms\": " << number(milliseconds(load_start, load_end)) << ",\n"
             << "  \"index_build_ms\": " << number(milliseconds(build_start, build_end)) << ",\n"
             << "  \"latency_mean_ms\": " << number(latency.mean_ms) << ",\n"
@@ -327,8 +358,7 @@ int main(int argc, char** argv) {
             << "  \"latency_p95_ms\": " << number(latency.p95_ms) << ",\n"
             << "  \"latency_p99_ms\": " << number(latency.p99_ms) << ",\n"
             << "  \"latency_max_ms\": " << number(latency.max_ms) << ",\n"
-            << "  \"batch_queries_per_second\": "
-            << number(1000.0 * static_cast<double>(queries.size()) / batch_ms) << ",\n"
+            << "  \"batch_queries_per_second\": " << number(one_thread_qps) << ",\n"
             << "  \"candidates_per_query\": " << number(latency.mean_candidates) << ",\n"
             << "  \"recall_at_k\": " << (recall ? number(recall->mean) : "null") << ",\n"
             << "  \"recall_min\": " << (recall ? number(recall->min) : "null") << ",\n"
@@ -345,7 +375,26 @@ int main(int argc, char** argv) {
             << "    \"peak_reset_after_load\": " << (peak_reset ? "true" : "false") << ",\n"
             << "    \"peak_rss_bytes\": " << optional_number(final_memory.peak_rss_bytes) << "\n"
             << "  },\n"
-            << "  \"hardware_threads\": " << cvs::bench::hardware_threads() << ",\n"
+            << "  \"hardware_threads\": " << hardware << ",\n"
+            << "  \"threads_requested\": " << number_list(options.threads) << ",\n"
+            << "  \"threads_run\": " << number_list(thread_counts) << ",\n"
+            << "  \"threaded_results_match\": " << (threaded_match ? "true" : "false") << ",\n"
+            << "  \"batch\": [\n";
+        for (std::size_t i = 0; i < batches.size(); ++i) {
+            const auto& b = batches[i];
+            const double speedup = one_thread_qps > 0 ? b.queries_per_second / one_thread_qps
+                                                      : std::numeric_limits<double>::quiet_NaN();
+            out << "    {\"threads\": " << b.threads
+                << ", \"median_wall_ms\": " << number(b.median_wall_ms)
+                << ", \"queries_per_second\": " << number(b.queries_per_second)
+                << ", \"best_queries_per_second\": " << number(b.best_queries_per_second)
+                << ", \"speedup_vs_1_thread\": " << number(speedup)
+                << ", \"parallel_efficiency\": " << number(speedup / static_cast<double>(b.threads))
+                << ", \"wall_ms\": " << number_list(b.wall_ms)
+                << ", \"queries_per_thread\": " << number_list(b.queries_per_thread) << "}"
+                << (i + 1 < batches.size() ? ",\n" : "\n");
+        }
+        out << "  ],\n"
             << "  \"environment\": {\"operating_system\": " << json_string(operating_system())
             << ", \"architecture\": " << json_string(architecture())
             << ", \"cpu_model\": " << json_string(cvs::bench::cpu_model())

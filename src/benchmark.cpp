@@ -1,6 +1,9 @@
 #include "cvs/benchmark.hpp"
 
 #include <algorithm>
+#include <atomic>
+#include <exception>
+#include <mutex>
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
@@ -228,6 +231,130 @@ LatencyRun measure_latency(const SearchIndex& index,
     run.max_ms = sorted.back();
     run.mean_candidates = candidate_total / static_cast<double>(run.records.size());
     return run;
+}
+
+std::vector<std::size_t> cap_thread_counts(const std::vector<std::size_t>& requested,
+                                           std::size_t hardware) {
+    std::vector<std::size_t> kept;
+    for (auto count : requested) {
+        if (count == 0) throw std::invalid_argument("thread counts must be positive");
+        if (hardware != 0 && count > hardware) continue;
+        if (std::find(kept.begin(), kept.end(), count) == kept.end()) kept.push_back(count);
+    }
+    if (kept.empty()) kept.push_back(1);
+    return kept;
+}
+
+namespace {
+
+struct alignas(64) WorkerSlot {
+    std::size_t queries_done = 0;
+    double checksum = 0.0;
+};
+
+template <typename Body>
+double run_workers(std::size_t threads, Body body) {
+    std::atomic<std::size_t> ready{0};
+    std::atomic<bool> go{false};
+    std::exception_ptr failure;
+    std::mutex failure_mutex;
+
+    std::vector<std::thread> workers;
+    workers.reserve(threads);
+    for (std::size_t t = 0; t < threads; ++t) {
+        workers.emplace_back([&, t] {
+            ready.fetch_add(1, std::memory_order_acq_rel);
+            while (!go.load(std::memory_order_acquire)) std::this_thread::yield();
+            try {
+                body(t);
+            } catch (...) {
+                const std::lock_guard<std::mutex> lock(failure_mutex);
+                if (!failure) failure = std::current_exception();
+            }
+        });
+    }
+    while (ready.load(std::memory_order_acquire) != threads) std::this_thread::yield();
+    const auto start = Clock::now();
+    go.store(true, std::memory_order_release);
+    for (auto& worker : workers) worker.join();
+    const auto end = Clock::now();
+    if (failure) std::rethrow_exception(failure);
+    return milliseconds(start, end);
+}
+
+}
+
+std::vector<SearchResult> search_all(const SearchIndex& index,
+                                     const std::vector<std::vector<float>>& queries,
+                                     std::size_t k, std::size_t threads) {
+    if (threads == 0) throw std::invalid_argument("threads must be positive");
+    std::vector<SearchResult> results(queries.size());
+    std::atomic<std::size_t> next{0};
+    run_workers(threads, [&](std::size_t) {
+        for (;;) {
+            const auto q = next.fetch_add(1, std::memory_order_relaxed);
+            if (q >= queries.size()) break;
+            results[q] = index.search(queries[q], k);
+        }
+    });
+    return results;
+}
+
+BatchRun measure_batch(const SearchIndex& index,
+                       const std::vector<std::vector<float>>& queries,
+                       std::size_t k, std::size_t threads, std::size_t repetitions) {
+    if (threads == 0) throw std::invalid_argument("threads must be positive");
+    if (repetitions == 0) throw std::invalid_argument("repetitions must be positive");
+    if (queries.empty()) throw std::invalid_argument("no queries to run");
+
+    BatchRun run;
+    run.threads = threads;
+    volatile double sink = 0.0;
+    for (std::size_t rep = 0; rep < repetitions; ++rep) {
+        std::vector<WorkerSlot> slots(threads);
+        std::atomic<std::size_t> next{0};
+        const double wall = run_workers(threads, [&](std::size_t t) {
+            WorkerSlot local;
+            for (;;) {
+                const auto q = next.fetch_add(1, std::memory_order_relaxed);
+                if (q >= queries.size()) break;
+                const auto result = index.search(queries[q], k);
+                for (const auto& n : result.neighbors) local.checksum += n.squared_distance;
+                ++local.queries_done;
+            }
+            slots[t] = local;
+        });
+        if (wall <= 0.0) throw std::runtime_error("timer too coarse for this batch; add queries");
+        run.wall_ms.push_back(wall);
+        run.queries_per_thread.clear();
+        std::size_t answered = 0;
+        for (const auto& slot : slots) {
+            run.queries_per_thread.push_back(slot.queries_done);
+            answered += slot.queries_done;
+            sink = sink + slot.checksum;
+        }
+        if (answered != queries.size()) throw std::logic_error("batch skipped or repeated queries");
+    }
+    auto sorted = run.wall_ms;
+    std::sort(sorted.begin(), sorted.end());
+    run.median_wall_ms = nearest_rank_percentile(sorted, 0.5);
+    const auto n = static_cast<double>(queries.size());
+    run.queries_per_second = 1000.0 * n / run.median_wall_ms;
+    run.best_queries_per_second = 1000.0 * n / sorted.front();
+    return run;
+}
+
+bool same_results(const std::vector<SearchResult>& a, const std::vector<SearchResult>& b) {
+    if (a.size() != b.size()) return false;
+    for (std::size_t q = 0; q < a.size(); ++q) {
+        if (a[q].candidates_examined != b[q].candidates_examined) return false;
+        if (a[q].neighbors.size() != b[q].neighbors.size()) return false;
+        for (std::size_t i = 0; i < a[q].neighbors.size(); ++i) {
+            if (a[q].neighbors[i].id != b[q].neighbors[i].id) return false;
+            if (a[q].neighbors[i].squared_distance != b[q].neighbors[i].squared_distance) return false;
+        }
+    }
+    return true;
 }
 
 namespace {

@@ -89,6 +89,28 @@ LatencyRun measure_latency(const SearchIndex& index,
                            const std::vector<std::vector<float>>& queries,
                            std::size_t k, std::size_t warmup, std::size_t repetitions);
 
+std::vector<std::size_t> cap_thread_counts(const std::vector<std::size_t>& requested,
+                                           std::size_t hardware);
+
+std::vector<SearchResult> search_all(const SearchIndex& index,
+                                     const std::vector<std::vector<float>>& queries,
+                                     std::size_t k, std::size_t threads);
+
+struct BatchRun {
+    std::size_t threads = 1;
+    std::vector<double> wall_ms;
+    double median_wall_ms = 0.0;
+    double queries_per_second = 0.0;
+    double best_queries_per_second = 0.0;
+    std::vector<std::size_t> queries_per_thread;
+};
+
+BatchRun measure_batch(const SearchIndex& index,
+                       const std::vector<std::vector<float>>& queries,
+                       std::size_t k, std::size_t threads, std::size_t repetitions);
+
+bool same_results(const std::vector<SearchResult>& a, const std::vector<SearchResult>& b);
+
 struct MemorySnapshot {
     std::optional<std::size_t> current_rss_bytes;
     std::optional<std::size_t> peak_rss_bytes;

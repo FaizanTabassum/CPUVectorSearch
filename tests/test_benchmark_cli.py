@@ -42,7 +42,8 @@ with tempfile.TemporaryDirectory() as temporary:
     
     out, raw = root / "s.json", root / "raw.csv"
     run("--database", database, "--queries", queries, "--database-size", 200,
-        "--ground-truth", truth, "--repetitions", 2, "--output", out,
+        "--ground-truth", truth, "--repetitions", 2, "--threads", "1,2,4",
+        "--batch-repetitions", 2, "--output", out,
         "--raw-output", raw, "--metadata", "split=tuning")
     summary = json.loads(out.read_text())
     assert summary["schema_version"] == 2 and summary["route"] == "scalar_flat"
@@ -54,6 +55,12 @@ with tempfile.TemporaryDirectory() as temporary:
     assert summary["latency_p99_ms"] >= summary["latency_p95_ms"] >= summary["latency_median_ms"]
     assert summary["metadata"] == {"split": "tuning"}
     assert summary["hardware_threads"] >= 0
+    assert summary["threads_requested"] == [1, 2, 4]
+    assert summary["threads_run"][0] == 1 and summary["batch"][0]["threads"] == 1
+    assert summary["threaded_results_match"] is True
+    assert all(b["queries_per_second"] > 0 and len(b["wall_ms"]) == 2 for b in summary["batch"])
+    assert all(sum(b["queries_per_thread"]) == 12 for b in summary["batch"])
+    assert summary["batch_queries_per_second"] == summary["batch"][0]["queries_per_second"]
     assert set(summary["environment"]) >= {"operating_system", "cpu_model", "compiler", "build_type"}
     assert set(summary["memory"]) >= {"method", "rss_after_load_bytes", "peak_rss_bytes"}
     if sys.platform.startswith("linux") or sys.platform in ("darwin", "win32"):
@@ -144,6 +151,9 @@ with tempfile.TemporaryDirectory() as temporary:
         ["--database-size", 301],                                   
         ["--database-size", 0],
         ["--route", "nope"],
+        ["--threads", "0"],
+        ["--threads", "1,,2"],
+        ["--batch-repetitions", 0],
         ["--route", "scalar_flat", "--param", "probes=4"],
         ["--route", "ivf", "--param", "lists=8", "--param", "probes=9"],
         ["--param", "backend"],
