@@ -1,0 +1,353 @@
+{
+  "schema_version": 1,
+  "purpose": "pre-freeze correctness checks; local timings are not final performance evidence",
+  "implementation_commit": "f0185ef104d3cf74e6744aa2fd0d587048c0a9df",
+  "validation_platform": "macOS-27.2.1-arm64-arm-64bit-Mach-O",
+  "validation_backend": "scalar",
+  "final_performance_backend": "avx2",
+  "held_out_searches_run": false,
+  "tests": {
+    "suites": 13,
+    "passed": 13
+  },
+  "dataset": {
+    "database": {
+      "rows": 100000,
+      "sha256": "c5491db56eed7d3cd5990b2c61e872199e6b724a8b6a4bcf899310dba9da1b9d",
+      "max_squared_norm_error": 6.01501982666619e-08
+    },
+    "tuning": {
+      "rows": 500,
+      "sha256": "8cc4b7b5ab65017fd30aa06de2d20294969f8b91a7b9658e54526604fbba4655",
+      "max_squared_norm_error": 3.875128185004684e-08
+    },
+    "test": {
+      "rows": 1000,
+      "sha256": "1ec98e6b258c7029d577926b2e2ab8951675848371100d0654923bcb5ffdfd80",
+      "max_squared_norm_error": 4.626555272224664e-08
+    },
+    "source_archive_sha256": "afa5e258ee38272db6394547c4b075ecbb7b2164e98542c8d1237b6029b35a65",
+    "source_row_disjointness": true
+  },
+  "tuning": {
+    "total_runs": 150,
+    "ivf_runs": 144,
+    "grid_complete": true,
+    "all_lists_avx2_recall_1_runs": 18,
+    "source_tree_dirty": true,
+    "limitations": [
+      "The archived x86 tuning manifest marks the working tree dirty; individual process JSON/CSV outputs were not committed.",
+      "Local scalar correctness checks independently validate rankings; final AVX2 timings must be measured on the frozen Windows/Intel machine."
+    ],
+    "selected": [
+      {
+        "database_rows": 10000,
+        "lists": 256,
+        "probes": 64,
+        "iterations": 25,
+        "seeds": [
+          5206,
+          5207,
+          5208
+        ],
+        "mean_recall_at_10": 0.9642666666666666,
+        "worst_seed_recall_at_10": 0.9632,
+        "mean_seed_median_latency_ms": 0.1465
+      },
+      {
+        "database_rows": 50000,
+        "lists": 256,
+        "probes": 64,
+        "iterations": 25,
+        "seeds": [
+          5206,
+          5207,
+          5208
+        ],
+        "mean_recall_at_10": 0.9792666666666667,
+        "worst_seed_recall_at_10": 0.9774,
+        "mean_seed_median_latency_ms": 0.7497333333333334
+      },
+      {
+        "database_rows": 100000,
+        "lists": 256,
+        "probes": 64,
+        "iterations": 25,
+        "seeds": [
+          5206,
+          5207,
+          5208
+        ],
+        "mean_recall_at_10": 0.9827333333333333,
+        "worst_seed_recall_at_10": 0.982,
+        "mean_seed_median_latency_ms": 1.9781666666666666
+      }
+    ]
+  },
+  "comparisons": [
+    {
+      "database_rows": 10000,
+      "route": "ivf",
+      "backend": "scalar",
+      "lists": 256,
+      "probes": 256,
+      "iterations": 25,
+      "seed": 5206,
+      "answer_rows": 5000,
+      "ids_and_fp32_scores_match": true,
+      "results_sha256": "bebc5ef35148dad51a23090e77cd1de4c3f579c6e21252d914a7fa360287a945",
+      "command": "./build/vector_search --database data/processed/glove-50d-seed5206/database.cvec --queries data/processed/glove-50d-seed5206/tuning.cvec --database-size 10000 --route ivf --k 10 --param backend=scalar --warmup-queries 0 --repetitions 1 --threads 1 --batch-repetitions 1 --results-output results/raw/pre-freeze-2026-11-11/ivf-n10000-s5206.csv --output results/raw/pre-freeze-2026-11-11/ivf-n10000-s5206.json --param lists=256 --param probes=256 --param seed=5206 --param iterations=25"
+    },
+    {
+      "database_rows": 10000,
+      "route": "ivf",
+      "backend": "scalar",
+      "lists": 256,
+      "probes": 256,
+      "iterations": 25,
+      "seed": 5207,
+      "answer_rows": 5000,
+      "ids_and_fp32_scores_match": true,
+      "results_sha256": "bebc5ef35148dad51a23090e77cd1de4c3f579c6e21252d914a7fa360287a945",
+      "command": "./build/vector_search --database data/processed/glove-50d-seed5206/database.cvec --queries data/processed/glove-50d-seed5206/tuning.cvec --database-size 10000 --route ivf --k 10 --param backend=scalar --warmup-queries 0 --repetitions 1 --threads 1 --batch-repetitions 1 --results-output results/raw/pre-freeze-2026-11-11/ivf-n10000-s5207.csv --output results/raw/pre-freeze-2026-11-11/ivf-n10000-s5207.json --param lists=256 --param probes=256 --param seed=5207 --param iterations=25"
+    },
+    {
+      "database_rows": 10000,
+      "route": "ivf",
+      "backend": "scalar",
+      "lists": 256,
+      "probes": 256,
+      "iterations": 25,
+      "seed": 5208,
+      "answer_rows": 5000,
+      "ids_and_fp32_scores_match": true,
+      "results_sha256": "bebc5ef35148dad51a23090e77cd1de4c3f579c6e21252d914a7fa360287a945",
+      "command": "./build/vector_search --database data/processed/glove-50d-seed5206/database.cvec --queries data/processed/glove-50d-seed5206/tuning.cvec --database-size 10000 --route ivf --k 10 --param backend=scalar --warmup-queries 0 --repetitions 1 --threads 1 --batch-repetitions 1 --results-output results/raw/pre-freeze-2026-11-11/ivf-n10000-s5208.csv --output results/raw/pre-freeze-2026-11-11/ivf-n10000-s5208.json --param lists=256 --param probes=256 --param seed=5208 --param iterations=25"
+    },
+    {
+      "database_rows": 10000,
+      "route": "optimized_flat",
+      "backend": "scalar",
+      "matches_original_scalar_reference": true,
+      "answer_rows": 5000,
+      "results_sha256": "bebc5ef35148dad51a23090e77cd1de4c3f579c6e21252d914a7fa360287a945",
+      "command": "./build/vector_search --database data/processed/glove-50d-seed5206/database.cvec --queries data/processed/glove-50d-seed5206/tuning.cvec --database-size 10000 --route optimized_flat --k 10 --param backend=scalar --warmup-queries 0 --repetitions 1 --threads 1 --batch-repetitions 1 --results-output results/raw/pre-freeze-2026-11-11/optimized_flat-n10000.csv --output results/raw/pre-freeze-2026-11-11/optimized_flat-n10000.json"
+    },
+    {
+      "database_rows": 50000,
+      "route": "ivf",
+      "backend": "scalar",
+      "lists": 256,
+      "probes": 256,
+      "iterations": 25,
+      "seed": 5206,
+      "answer_rows": 5000,
+      "ids_and_fp32_scores_match": true,
+      "results_sha256": "160400ce4b4ec14e565e6f27edfa7995c048429c483ee10679af3b7aa71da5cb",
+      "command": "./build/vector_search --database data/processed/glove-50d-seed5206/database.cvec --queries data/processed/glove-50d-seed5206/tuning.cvec --database-size 50000 --route ivf --k 10 --param backend=scalar --warmup-queries 0 --repetitions 1 --threads 1 --batch-repetitions 1 --results-output results/raw/pre-freeze-2026-11-11/ivf-n50000-s5206.csv --output results/raw/pre-freeze-2026-11-11/ivf-n50000-s5206.json --param lists=256 --param probes=256 --param seed=5206 --param iterations=25"
+    },
+    {
+      "database_rows": 50000,
+      "route": "ivf",
+      "backend": "scalar",
+      "lists": 256,
+      "probes": 256,
+      "iterations": 25,
+      "seed": 5207,
+      "answer_rows": 5000,
+      "ids_and_fp32_scores_match": true,
+      "results_sha256": "160400ce4b4ec14e565e6f27edfa7995c048429c483ee10679af3b7aa71da5cb",
+      "command": "./build/vector_search --database data/processed/glove-50d-seed5206/database.cvec --queries data/processed/glove-50d-seed5206/tuning.cvec --database-size 50000 --route ivf --k 10 --param backend=scalar --warmup-queries 0 --repetitions 1 --threads 1 --batch-repetitions 1 --results-output results/raw/pre-freeze-2026-11-11/ivf-n50000-s5207.csv --output results/raw/pre-freeze-2026-11-11/ivf-n50000-s5207.json --param lists=256 --param probes=256 --param seed=5207 --param iterations=25"
+    },
+    {
+      "database_rows": 50000,
+      "route": "ivf",
+      "backend": "scalar",
+      "lists": 256,
+      "probes": 256,
+      "iterations": 25,
+      "seed": 5208,
+      "answer_rows": 5000,
+      "ids_and_fp32_scores_match": true,
+      "results_sha256": "160400ce4b4ec14e565e6f27edfa7995c048429c483ee10679af3b7aa71da5cb",
+      "command": "./build/vector_search --database data/processed/glove-50d-seed5206/database.cvec --queries data/processed/glove-50d-seed5206/tuning.cvec --database-size 50000 --route ivf --k 10 --param backend=scalar --warmup-queries 0 --repetitions 1 --threads 1 --batch-repetitions 1 --results-output results/raw/pre-freeze-2026-11-11/ivf-n50000-s5208.csv --output results/raw/pre-freeze-2026-11-11/ivf-n50000-s5208.json --param lists=256 --param probes=256 --param seed=5208 --param iterations=25"
+    },
+    {
+      "database_rows": 50000,
+      "route": "optimized_flat",
+      "backend": "scalar",
+      "matches_original_scalar_reference": true,
+      "answer_rows": 5000,
+      "results_sha256": "160400ce4b4ec14e565e6f27edfa7995c048429c483ee10679af3b7aa71da5cb",
+      "command": "./build/vector_search --database data/processed/glove-50d-seed5206/database.cvec --queries data/processed/glove-50d-seed5206/tuning.cvec --database-size 50000 --route optimized_flat --k 10 --param backend=scalar --warmup-queries 0 --repetitions 1 --threads 1 --batch-repetitions 1 --results-output results/raw/pre-freeze-2026-11-11/optimized_flat-n50000.csv --output results/raw/pre-freeze-2026-11-11/optimized_flat-n50000.json"
+    },
+    {
+      "database_rows": 100000,
+      "route": "ivf",
+      "backend": "scalar",
+      "lists": 256,
+      "probes": 256,
+      "iterations": 25,
+      "seed": 5206,
+      "answer_rows": 5000,
+      "ids_and_fp32_scores_match": true,
+      "results_sha256": "66acaf40b34b16e2d56d89bd9995d4b4261ef61fd298121a00fd3d72e883b115",
+      "command": "./build/vector_search --database data/processed/glove-50d-seed5206/database.cvec --queries data/processed/glove-50d-seed5206/tuning.cvec --database-size 100000 --route ivf --k 10 --param backend=scalar --warmup-queries 0 --repetitions 1 --threads 1 --batch-repetitions 1 --results-output results/raw/pre-freeze-2026-11-11/ivf-n100000-s5206.csv --output results/raw/pre-freeze-2026-11-11/ivf-n100000-s5206.json --param lists=256 --param probes=256 --param seed=5206 --param iterations=25"
+    },
+    {
+      "database_rows": 100000,
+      "route": "ivf",
+      "backend": "scalar",
+      "lists": 256,
+      "probes": 256,
+      "iterations": 25,
+      "seed": 5207,
+      "answer_rows": 5000,
+      "ids_and_fp32_scores_match": true,
+      "results_sha256": "66acaf40b34b16e2d56d89bd9995d4b4261ef61fd298121a00fd3d72e883b115",
+      "command": "./build/vector_search --database data/processed/glove-50d-seed5206/database.cvec --queries data/processed/glove-50d-seed5206/tuning.cvec --database-size 100000 --route ivf --k 10 --param backend=scalar --warmup-queries 0 --repetitions 1 --threads 1 --batch-repetitions 1 --results-output results/raw/pre-freeze-2026-11-11/ivf-n100000-s5207.csv --output results/raw/pre-freeze-2026-11-11/ivf-n100000-s5207.json --param lists=256 --param probes=256 --param seed=5207 --param iterations=25"
+    },
+    {
+      "database_rows": 100000,
+      "route": "ivf",
+      "backend": "scalar",
+      "lists": 256,
+      "probes": 256,
+      "iterations": 25,
+      "seed": 5208,
+      "answer_rows": 5000,
+      "ids_and_fp32_scores_match": true,
+      "results_sha256": "66acaf40b34b16e2d56d89bd9995d4b4261ef61fd298121a00fd3d72e883b115",
+      "command": "./build/vector_search --database data/processed/glove-50d-seed5206/database.cvec --queries data/processed/glove-50d-seed5206/tuning.cvec --database-size 100000 --route ivf --k 10 --param backend=scalar --warmup-queries 0 --repetitions 1 --threads 1 --batch-repetitions 1 --results-output results/raw/pre-freeze-2026-11-11/ivf-n100000-s5208.csv --output results/raw/pre-freeze-2026-11-11/ivf-n100000-s5208.json --param lists=256 --param probes=256 --param seed=5208 --param iterations=25"
+    },
+    {
+      "database_rows": 100000,
+      "route": "optimized_flat",
+      "backend": "scalar",
+      "matches_original_scalar_reference": true,
+      "answer_rows": 5000,
+      "results_sha256": "66acaf40b34b16e2d56d89bd9995d4b4261ef61fd298121a00fd3d72e883b115",
+      "command": "./build/vector_search --database data/processed/glove-50d-seed5206/database.cvec --queries data/processed/glove-50d-seed5206/tuning.cvec --database-size 100000 --route optimized_flat --k 10 --param backend=scalar --warmup-queries 0 --repetitions 1 --threads 1 --batch-repetitions 1 --results-output results/raw/pre-freeze-2026-11-11/optimized_flat-n100000.csv --output results/raw/pre-freeze-2026-11-11/optimized_flat-n100000.json"
+    }
+  ],
+  "source_artifact_sha256": {
+    "results/tuning/summary.csv": "0728159321ff811bff78725c6656b2c09421567259e19fa47d32423ab1f0cdb1",
+    "results/tuning/aggregated.csv": "b920690692fe4b3ec6cbaf7df0d147d616a6363df1fb3d1fe01c2dc6b1ea4d0b",
+    "results/tuning/run-manifest.json": "10a63fd88b6b788887465a11996a90a8376db99d2301188242e36343d577073f",
+    "docs/benchmarking.md": "3bcbdfb9ca7f7902c965f53e7684bda95bf1e056bfd4a790da7ece06e92c0c42",
+    "src/search.cpp": "b19b6dc69bb783b794451942dff3c61921c73dfe65271db8e0fc5f5b0fc7a2ae",
+    "src/optimized_flat.cpp": "81113850f3e8037f256cb7be1f2e882ea507a9523f6e7fa6cbd13a3db76ae0a1",
+    "src/optimized_flat_avx2.cpp": "510c80db8f235b1db546b64218d903c061dfcdf5cb98797f9abe8e14417f76f4",
+    "src/ivf.cpp": "006c0a0b4d6634a6c40dca8df2dfe5685bb2d968017db95b9c4555e902904f6e",
+    "src/kmeans.cpp": "fbb0f0ed423bddfa46ec8c19791cd0c04053848a1d3185b17873c394497f8ef7",
+    "scripts/run_benchmarks.py": "639f935f87f9ffe6666b321e8a6bcf793b424da3eeb7f2e6682dfda825794ab2",
+    "scripts/make_references.py": "3de15b60b64e2cdb4e60d8c20ba00e5d1264ff9f4ffe19e2aafc76809c2d6b59"
+  },
+  "selected_setting_independent_checks": [
+    {
+      "database_rows": 10000,
+      "seed": 5206,
+      "lists": 256,
+      "probes": 64,
+      "iterations": 25,
+      "backend": "scalar",
+      "recall_at_10": 0.966,
+      "matches_archived_x86_recall": true,
+      "command": "./build/vector_search --database data/processed/glove-50d-seed5206/database.cvec --queries data/processed/glove-50d-seed5206/tuning.cvec --database-size 10000 --route ivf --param backend=scalar --param lists=256 --param probes=64 --param iterations=25 --param seed=5206 --ground-truth data/processed/glove-50d-seed5206/reference-tuning/top10-tuning-n10000.csv --warmup-queries 0 --repetitions 1 --batch-repetitions 1 --threads 1 --output results/raw/pre-freeze-2026-11-11/selected-ivf-n10000-s5206.json"
+    },
+    {
+      "database_rows": 10000,
+      "seed": 5207,
+      "lists": 256,
+      "probes": 64,
+      "iterations": 25,
+      "backend": "scalar",
+      "recall_at_10": 0.9632,
+      "matches_archived_x86_recall": true,
+      "command": "./build/vector_search --database data/processed/glove-50d-seed5206/database.cvec --queries data/processed/glove-50d-seed5206/tuning.cvec --database-size 10000 --route ivf --param backend=scalar --param lists=256 --param probes=64 --param iterations=25 --param seed=5207 --ground-truth data/processed/glove-50d-seed5206/reference-tuning/top10-tuning-n10000.csv --warmup-queries 0 --repetitions 1 --batch-repetitions 1 --threads 1 --output results/raw/pre-freeze-2026-11-11/selected-ivf-n10000-s5207.json"
+    },
+    {
+      "database_rows": 10000,
+      "seed": 5208,
+      "lists": 256,
+      "probes": 64,
+      "iterations": 25,
+      "backend": "scalar",
+      "recall_at_10": 0.9636,
+      "matches_archived_x86_recall": true,
+      "command": "./build/vector_search --database data/processed/glove-50d-seed5206/database.cvec --queries data/processed/glove-50d-seed5206/tuning.cvec --database-size 10000 --route ivf --param backend=scalar --param lists=256 --param probes=64 --param iterations=25 --param seed=5208 --ground-truth data/processed/glove-50d-seed5206/reference-tuning/top10-tuning-n10000.csv --warmup-queries 0 --repetitions 1 --batch-repetitions 1 --threads 1 --output results/raw/pre-freeze-2026-11-11/selected-ivf-n10000-s5208.json"
+    },
+    {
+      "database_rows": 50000,
+      "seed": 5206,
+      "lists": 256,
+      "probes": 64,
+      "iterations": 25,
+      "backend": "scalar",
+      "recall_at_10": 0.9774,
+      "matches_archived_x86_recall": true,
+      "command": "./build/vector_search --database data/processed/glove-50d-seed5206/database.cvec --queries data/processed/glove-50d-seed5206/tuning.cvec --database-size 50000 --route ivf --param backend=scalar --param lists=256 --param probes=64 --param iterations=25 --param seed=5206 --ground-truth data/processed/glove-50d-seed5206/reference-tuning/top10-tuning-n50000.csv --warmup-queries 0 --repetitions 1 --batch-repetitions 1 --threads 1 --output results/raw/pre-freeze-2026-11-11/selected-ivf-n50000-s5206.json"
+    },
+    {
+      "database_rows": 50000,
+      "seed": 5207,
+      "lists": 256,
+      "probes": 64,
+      "iterations": 25,
+      "backend": "scalar",
+      "recall_at_10": 0.9804,
+      "matches_archived_x86_recall": true,
+      "command": "./build/vector_search --database data/processed/glove-50d-seed5206/database.cvec --queries data/processed/glove-50d-seed5206/tuning.cvec --database-size 50000 --route ivf --param backend=scalar --param lists=256 --param probes=64 --param iterations=25 --param seed=5207 --ground-truth data/processed/glove-50d-seed5206/reference-tuning/top10-tuning-n50000.csv --warmup-queries 0 --repetitions 1 --batch-repetitions 1 --threads 1 --output results/raw/pre-freeze-2026-11-11/selected-ivf-n50000-s5207.json"
+    },
+    {
+      "database_rows": 50000,
+      "seed": 5208,
+      "lists": 256,
+      "probes": 64,
+      "iterations": 25,
+      "backend": "scalar",
+      "recall_at_10": 0.98,
+      "matches_archived_x86_recall": true,
+      "command": "./build/vector_search --database data/processed/glove-50d-seed5206/database.cvec --queries data/processed/glove-50d-seed5206/tuning.cvec --database-size 50000 --route ivf --param backend=scalar --param lists=256 --param probes=64 --param iterations=25 --param seed=5208 --ground-truth data/processed/glove-50d-seed5206/reference-tuning/top10-tuning-n50000.csv --warmup-queries 0 --repetitions 1 --batch-repetitions 1 --threads 1 --output results/raw/pre-freeze-2026-11-11/selected-ivf-n50000-s5208.json"
+    },
+    {
+      "database_rows": 100000,
+      "seed": 5206,
+      "lists": 256,
+      "probes": 64,
+      "iterations": 25,
+      "backend": "scalar",
+      "recall_at_10": 0.9834,
+      "matches_archived_x86_recall": true,
+      "command": "./build/vector_search --database data/processed/glove-50d-seed5206/database.cvec --queries data/processed/glove-50d-seed5206/tuning.cvec --database-size 100000 --route ivf --param backend=scalar --param lists=256 --param probes=64 --param iterations=25 --param seed=5206 --ground-truth data/processed/glove-50d-seed5206/reference-tuning/top10-tuning-n100000.csv --warmup-queries 0 --repetitions 1 --batch-repetitions 1 --threads 1 --output results/raw/pre-freeze-2026-11-11/selected-ivf-n100000-s5206.json"
+    },
+    {
+      "database_rows": 100000,
+      "seed": 5207,
+      "lists": 256,
+      "probes": 64,
+      "iterations": 25,
+      "backend": "scalar",
+      "recall_at_10": 0.982,
+      "matches_archived_x86_recall": true,
+      "command": "./build/vector_search --database data/processed/glove-50d-seed5206/database.cvec --queries data/processed/glove-50d-seed5206/tuning.cvec --database-size 100000 --route ivf --param backend=scalar --param lists=256 --param probes=64 --param iterations=25 --param seed=5207 --ground-truth data/processed/glove-50d-seed5206/reference-tuning/top10-tuning-n100000.csv --warmup-queries 0 --repetitions 1 --batch-repetitions 1 --threads 1 --output results/raw/pre-freeze-2026-11-11/selected-ivf-n100000-s5207.json"
+    },
+    {
+      "database_rows": 100000,
+      "seed": 5208,
+      "lists": 256,
+      "probes": 64,
+      "iterations": 25,
+      "backend": "scalar",
+      "recall_at_10": 0.9828,
+      "matches_archived_x86_recall": true,
+      "command": "./build/vector_search --database data/processed/glove-50d-seed5206/database.cvec --queries data/processed/glove-50d-seed5206/tuning.cvec --database-size 100000 --route ivf --param backend=scalar --param lists=256 --param probes=64 --param iterations=25 --param seed=5208 --ground-truth data/processed/glove-50d-seed5206/reference-tuning/top10-tuning-n100000.csv --warmup-queries 0 --repetitions 1 --batch-repetitions 1 --threads 1 --output results/raw/pre-freeze-2026-11-11/selected-ivf-n100000-s5208.json"
+    }
+  ],
+  "benchmark_binary_sha256": "365852c3e88d3eb38fb5679a58f1b31346445193ec505cc1436743f2c153b902",
+  "test_log_sha256": "afc2b72234209e43efe1fc2330b0bc4b1856b96bcdaaff82c03f144a55e3be7a",
+  "benchmark_source_matches_pinned_commit": true,
+  "compiler_version": "Apple clang version 21.0.0 (clang-2100.4.1.1)",
+  "build_type": "Release",
+  "fp_contract": "off"
+}

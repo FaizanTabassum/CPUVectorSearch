@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "status": "pending",
-  "note": "Planning record only. Final settings have not been chosen or frozen. Do not run held-out evaluation yet.",
-  "frozen_at_utc": null,
-  "frozen_code_commit": null,
+  "status": "frozen",
+  "note": "Frozen using only the 500 tuning queries and the completed pre-freeze validation. Commit this record before held-out reference generation or searches. Final performance runs must use the agreed Windows/Intel AVX2 machine and the explicit frozen configuration.",
+  "frozen_at_utc": "2026-11-11T04:04:27Z",
+  "frozen_code_commit": "f0185ef104d3cf74e6744aa2fd0d587048c0a9df",
   "dataset_snapshot": "configs/dataset-snapshot.json",
   "dataset_manifest_sha256": "68d4ffa78af5de689324d959b95685d43b0f42a714b3a6956af0bf7e437857e6",
   "database_sizes": [
@@ -13,10 +13,207 @@
   ],
   "k": 10,
   "minimum_recall_at_10": 0.95,
-  "selected_ivf_configurations": [],
-  "scoring_backend": null,
-  "reference_manifests": [],
-  "timing_protocol": null,
-  "correctness_evidence": null,
-  "tuning_evidence": null
+  "selected_ivf_configurations": [
+    {
+      "database_rows": 10000,
+      "lists": 256,
+      "probes": 64,
+      "iterations": 25,
+      "seeds": [
+        5206,
+        5207,
+        5208
+      ]
+    },
+    {
+      "database_rows": 50000,
+      "lists": 256,
+      "probes": 64,
+      "iterations": 25,
+      "seeds": [
+        5206,
+        5207,
+        5208
+      ]
+    },
+    {
+      "database_rows": 100000,
+      "lists": 256,
+      "probes": 64,
+      "iterations": 25,
+      "seeds": [
+        5206,
+        5207,
+        5208
+      ]
+    }
+  ],
+  "scoring_backend": {
+    "scalar_flat": "scalar",
+    "optimized_flat": "avx2",
+    "ivf": "avx2",
+    "unavailable_avx2_policy": "Stop; do not substitute an ARM/scalar run for the frozen performance comparison."
+  },
+  "reference_manifests": [
+    {
+      "path": "data/processed/glove-50d-seed5206/reference-tuning/reference-manifest.json",
+      "sha256": "cebbfd258b1060fd38428578e1a83f1791ad83345a7b1ec6998f50a6dd294077",
+      "split": "tuning",
+      "backend": "scalar",
+      "database_sha256": "c5491db56eed7d3cd5990b2c61e872199e6b724a8b6a4bcf899310dba9da1b9d",
+      "queries_sha256": "8cc4b7b5ab65017fd30aa06de2d20294969f8b91a7b9658e54526604fbba4655",
+      "outputs": [
+        {
+          "file": "top10-tuning-n10000.csv",
+          "database_rows": 10000,
+          "answer_rows": 5000,
+          "sha256": "bebc5ef35148dad51a23090e77cd1de4c3f579c6e21252d914a7fa360287a945"
+        },
+        {
+          "file": "top10-tuning-n50000.csv",
+          "database_rows": 50000,
+          "answer_rows": 5000,
+          "sha256": "160400ce4b4ec14e565e6f27edfa7995c048429c483ee10679af3b7aa71da5cb"
+        },
+        {
+          "file": "top10-tuning-n100000.csv",
+          "database_rows": 100000,
+          "answer_rows": 5000,
+          "sha256": "66acaf40b34b16e2d56d89bd9995d4b4261ef61fd298121a00fd3d72e883b115"
+        }
+      ]
+    }
+  ],
+  "timing_protocol": {
+    "tool": "scripts/run_benchmarks.py",
+    "warmup_queries": 10,
+    "timed_passes": 5,
+    "batch_passes": 3,
+    "process_runs": 3,
+    "threads": [
+      1,
+      2,
+      4
+    ],
+    "core_latency_threads": 1,
+    "memory_method": "process resident memory; Windows PeakWorkingSetSize",
+    "machine": "Intel Core i7-10750H, Windows, GCC 16.2, Release build, mains power",
+    "raw_results": "versioned submission folder copied from results/final/"
+  },
+  "correctness_evidence": {
+    "path": "results/validation/pre-freeze-2026-11-11/validation.json",
+    "sha256": "d7b163e44f001fc35feb0a9f769de7e776f069888903a2621734fa712d610e76",
+    "state": "passed",
+    "test_suites_passed": 13,
+    "all_lists_exact_id_and_score_checks": 9,
+    "independent_selected_setting_recall_checks": 9,
+    "native_validation_backend": "scalar on macOS/ARM",
+    "x86_avx2_tuning_evidence": "18 all-lists seed/size/list configurations have recall 1.0 in results/tuning/summary.csv; Devam independently reproduced the full 144-run grid."
+  },
+  "tuning_evidence": {
+    "summary": "results/tuning/summary.csv",
+    "summary_sha256": "0728159321ff811bff78725c6656b2c09421567259e19fa47d32423ab1f0cdb1",
+    "run_manifest": "results/tuning/run-manifest.json",
+    "run_manifest_sha256": "10a63fd88b6b788887465a11996a90a8376db99d2301188242e36343d577073f",
+    "source_commit": "f0185ef104d3cf74e6744aa2fd0d587048c0a9df",
+    "devam_recommendation": "https://github.com/FaizanTabassum/CPUVectorSearch/issues/9#issuecomment-6784918896",
+    "training_queries": 500,
+    "ivf_grid_runs": 144,
+    "training_seeds": [
+      5206,
+      5207,
+      5208
+    ],
+    "limitations": [
+      "The archived x86 tuning run was made with a dirty working tree; its binary hash and commands are recorded.",
+      "Archived tuning evidence contains summary rows and a run manifest, not individual raw process files. Independent recall checks and the final frozen run address reproducibility; tuning timings are not final results."
+    ],
+    "selected_recall_by_size": [
+      {
+        "database_rows": 10000,
+        "lists": 256,
+        "probes": 64,
+        "iterations": 25,
+        "seeds": [
+          5206,
+          5207,
+          5208
+        ],
+        "mean_recall_at_10": 0.9642666666666666,
+        "worst_seed_recall_at_10": 0.9632,
+        "mean_seed_median_latency_ms": 0.1465
+      },
+      {
+        "database_rows": 50000,
+        "lists": 256,
+        "probes": 64,
+        "iterations": 25,
+        "seeds": [
+          5206,
+          5207,
+          5208
+        ],
+        "mean_recall_at_10": 0.9792666666666667,
+        "worst_seed_recall_at_10": 0.9774,
+        "mean_seed_median_latency_ms": 0.7497333333333334
+      },
+      {
+        "database_rows": 100000,
+        "lists": 256,
+        "probes": 64,
+        "iterations": 25,
+        "seeds": [
+          5206,
+          5207,
+          5208
+        ],
+        "mean_recall_at_10": 0.9827333333333333,
+        "worst_seed_recall_at_10": 0.982,
+        "mean_seed_median_latency_ms": 1.9781666666666666
+      }
+    ]
+  },
+  "selection_rationale": "Use the same 256-list/64-probe configuration at all sizes for recall safety margin. The faster 64/16 setting fails at 10k and has little margin at 50k. No held-out outcomes were used.",
+  "held_out_reference_plan": [
+    {
+      "routes": [
+        "scalar_flat"
+      ],
+      "backend": "scalar",
+      "directory": "data/processed/glove-50d-seed5206/reference-test-scalar",
+      "generate": "after the freeze record is committed; using scripts/make_references.py"
+    },
+    {
+      "routes": [
+        "optimized_flat",
+        "ivf"
+      ],
+      "backend": "avx2",
+      "directory": "data/processed/glove-50d-seed5206/reference-test-avx2",
+      "generate": "after the freeze record is committed; using scripts/make_references.py"
+    }
+  ],
+  "measurement_procedure": {
+    "path": "docs/benchmarking.md",
+    "sha256": "3bcbdfb9ca7f7902c965f53e7684bda95bf1e056bfd4a790da7ece06e92c0c42",
+    "source_commit": "1665eb5ab2e719af566ff51dd147e58c61be2f4b",
+    "section": "For the freeze record",
+    "memory_interpretation": "Windows peak includes loading; index RSS delta is reported separately. Local ARM correctness checks are not performance evidence."
+  },
+  "final_experiment_config": {
+    "path": "configs/experiments-frozen.json",
+    "sha256": "da0cf128757965a0121c8f4d01e5ddd29753a83a4471323d646d7d38757d6a9d",
+    "iterations_note": "The pinned src/routes.cpp default is 25; run_benchmarks.py does not expose an iterations override. Verify route_metadata.iterations is 25 in final outputs."
+  },
+  "execution_requirements": {
+    "require_freeze_commit_before_held_out_search": true,
+    "require_release_build": true,
+    "require_final_machine_preflight_on_tuning_only": true,
+    "require_resolved_optimized_flat_and_ivf_backend": "avx2",
+    "fallback_note": "The current scorer may fall back to scalar even for an AVX2 request. Check route_metadata.backend before using any held-out inputs.",
+    "final_machine": "Intel Core i7-10750H / Windows / GCC 16.2",
+    "guide": "docs/evaluation-freeze.md",
+    "raw_archive": "results/final/frozen-2026-11-11",
+    "do_not_tune_after_held_out_results": true
+  }
 }
