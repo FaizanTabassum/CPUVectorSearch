@@ -1,5 +1,5 @@
 {
-  "status": "planned; final experiment runner not implemented",
+  "status": "planned grid; run with scripts/run_benchmarks.py (see docs/benchmarking.md)",
   "dataset": {
     "source": "Stanford GloVe 2024 Wikipedia/Gigaword",
     "dimensions": 50,
@@ -33,8 +33,12 @@
     "final_evaluate_on": "test_after_freeze",
     "recompute_ground_truth_per_subset": true,
     "metrics": ["recall_at_10", "median_latency_ms", "p95_latency_ms", "batch_queries_per_second", "candidate_count", "construction_ms", "peak_memory_bytes"],
-    "repetitions": null,
-    "warmup_policy": null
+    "repetitions": 5,
+    "warmup_queries": 10,
+    "batch_repetitions": 3,
+    "process_runs": 3,
+    "warmup_policy": "the first warmup_queries queries are searched once, untimed, before latency timing",
+    "repetition_policy": "5 timed passes per process; 3 batch passes per thread count, median reported; 3 separate processes per configuration, interleaved; tables use the median across processes and the mean across IVF training seeds"
   },
   "resources": {
     "target_engine_memory_bytes_below": 536870912,

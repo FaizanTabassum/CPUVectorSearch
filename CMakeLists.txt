@@ -70,5 +70,8 @@ if(BUILD_TESTING)
              $<TARGET_FILE:vector_search> $<TARGET_FILE:reference_search>)
     add_test(NAME benchmark_driver COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_run_benchmarks.py
              $<TARGET_FILE:vector_search> $<TARGET_FILE:reference_search>)
+    add_test(NAME benchmark_plots COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_plot_results.py)
+    add_test(NAME backend_references COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_make_references.py
+             $<TARGET_FILE:vector_search> $<TARGET_FILE:reference_search>)
   endif()
 endif()
