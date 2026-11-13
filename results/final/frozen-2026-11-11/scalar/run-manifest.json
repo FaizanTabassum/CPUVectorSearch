@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-11-13T05:49:00+00:00",
+  "purpose": "final_test_evaluation",
+  "split": "test",
+  "k": 10,
+  "sizes": [
+    10000,
+    50000,
+    100000
+  ],
+  "routes": [
+    "scalar_flat"
+  ],
+  "skipped_routes": [],
+  "threads_requested": [
+    1,
+    2,
+    4
+  ],
+  "warmup_queries": 10,
+  "repetitions": 5,
+  "batch_repetitions": 3,
+  "process_runs": 3,
+  "git": {
+    "commit": "8385c035fc2b89a87c7b743b57fb34561db0a6b4",
+    "dirty": false
+  },
+  "binary": "C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\build\\vector_search.exe",
+  "binary_sha256": "8f5866f92eea887d7408cbf921dbda4bcf96af331f901f132f35c10cd98b5c53",
+  "build_settings": {
+    "CMAKE_BUILD_TYPE": "Release",
+    "CMAKE_CXX_COMPILER": "C:/msys64/mingw64/bin/c++.exe",
+    "CMAKE_CXX_FLAGS": "",
+    "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+    "CVS_SANITIZERS": "OFF",
+    "compiler_version": "c++.exe (Rev4, Built by MSYS2 project) 16.2.0"
+  },
+  "environment": {
+    "operating_system": "windows",
+    "architecture": "x86_64",
+    "cpu_model": "Intel(R) Core(TM) i7-10750H CPU @ 2.60GHz",
+    "compiler": "16.2.0",
+    "build_type": "release",
+    "fp_contract": "off"
+  },
+  "hardware_threads": 12,
+  "host_platform": "Windows-11-10.0.26300-SP0",
+  "python": "3.13.14",
+  "memory_method": "windows GetProcessMemoryInfo WorkingSetSize and PeakWorkingSetSize (whole-process peak; cannot be reset after loading)",
+  "dataset": {
+    "directory": "C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206",
+    "manifest_sha256": "68d4ffa78af5de689324d959b95685d43b0f42a714b3a6956af0bf7e437857e6",
+    "data_seed": 5206,
+    "dimensions": 50,
+    "database_rows": 100000,
+    "database_sha256": "c5491db56eed7d3cd5990b2c61e872199e6b724a8b6a4bcf899310dba9da1b9d",
+    "query_rows": 1000,
+    "queries_sha256": "1ec98e6b258c7029d577926b2e2ab8951675848371100d0654923bcb5ffdfd80"
+  },
+  "references": {
+    "source": "member_a",
+    "directory": "C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\reference-test-scalar",
+    "files": {
+      "10000": {
+        "file": "C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\reference-test-scalar\\top10-test-n10000.csv",
+        "sha256": "49a0290b9072687f2f11668c547c4a29a077111e60d21e9f986f45cc8b2df636"
+      },
+      "50000": {
+        "file": "C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\reference-test-scalar\\top10-test-n50000.csv",
+        "sha256": "097e92e59dbb23ed55920853883cb9641cbd2931dcd8f288c105b1eed49da4b2"
+      },
+      "100000": {
+        "file": "C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\reference-test-scalar\\top10-test-n100000.csv",
+        "sha256": "d2f4300b7c5f71f07eb8bdee9cb701a0d8fa595fc03a6d02f842d27adaffd690"
+      }
+    }
+  },
+  "freeze_record": {
+    "file": "C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\configs\\evaluation-freeze.json",
+    "sha256": "2ccb86a5fbc8882cc56bbb284f9df6c6bdc6e7f843090fc3b09a57d50471fbe2",
+    "frozen_at_utc": "2026-11-11T04:04:27Z",
+    "frozen_code_commit": "f0185ef104d3cf74e6744aa2fd0d587048c0a9df"
+  },
+  "config_file": "configs\\experiments-frozen.json",
+  "config_sha256": "ffe71ad0edcef337f4fee80c4e01321561b4448e2947524349b87677e10a4c4e",
+  "commands": [
+    "'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\build\\vector_search.exe' --database 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\database.cvec' --queries 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\test.cvec' --database-size 10000 --route scalar_flat --k 10 --ground-truth 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\reference-test-scalar\\top10-test-n10000.csv' --warmup-queries 10 --repetitions 5 --threads 1,2,4 --batch-repetitions 3 --label scalar_flat-n10000-r1 --output 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\results\\final\\frozen-2026-11-11\\scalar\\runs\\scalar_flat-n10000-r1.json' --raw-output 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\results\\final\\frozen-2026-11-11\\scalar\\runs\\scalar_flat-n10000-r1-queries.csv' --metadata data_seed=5206 --metadata database_sha256=c5491db56eed7d3cd5990b2c61e872199e6b724a8b6a4bcf899310dba9da1b9d --metadata freeze_record_sha256=2ccb86a5fbc8882cc56bbb284f9df6c6bdc6e7f843090fc3b09a57d50471fbe2 --metadata git_commit=8385c035fc2b89a87c7b743b57fb34561db0a6b4 --metadata git_dirty=False --metadata process_run=1 --metadata queries_sha256=1ec98e6b258c7029d577926b2e2ab8951675848371100d0654923bcb5ffdfd80 --metadata reference_sha256=49a0290b9072687f2f11668c547c4a29a077111e60d21e9f986f45cc8b2df636 --metadata split=test",
+    "'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\build\\vector_search.exe' --database 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\database.cvec' --queries 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\test.cvec' --database-size 50000 --route scalar_flat --k 10 --ground-truth 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\reference-test-scalar\\top10-test-n50000.csv' --warmup-queries 10 --repetitions 5 --threads 1,2,4 --batch-repetitions 3 --label scalar_flat-n50000-r1 --output 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\results\\final\\frozen-2026-11-11\\scalar\\runs\\scalar_flat-n50000-r1.json' --raw-output 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\results\\final\\frozen-2026-11-11\\scalar\\runs\\scalar_flat-n50000-r1-queries.csv' --metadata data_seed=5206 --metadata database_sha256=c5491db56eed7d3cd5990b2c61e872199e6b724a8b6a4bcf899310dba9da1b9d --metadata freeze_record_sha256=2ccb86a5fbc8882cc56bbb284f9df6c6bdc6e7f843090fc3b09a57d50471fbe2 --metadata git_commit=8385c035fc2b89a87c7b743b57fb34561db0a6b4 --metadata git_dirty=False --metadata process_run=1 --metadata queries_sha256=1ec98e6b258c7029d577926b2e2ab8951675848371100d0654923bcb5ffdfd80 --metadata reference_sha256=097e92e59dbb23ed55920853883cb9641cbd2931dcd8f288c105b1eed49da4b2 --metadata split=test",
+    "'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\build\\vector_search.exe' --database 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\database.cvec' --queries 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\test.cvec' --database-size 100000 --route scalar_flat --k 10 --ground-truth 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\reference-test-scalar\\top10-test-n100000.csv' --warmup-queries 10 --repetitions 5 --threads 1,2,4 --batch-repetitions 3 --label scalar_flat-n100000-r1 --output 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\results\\final\\frozen-2026-11-11\\scalar\\runs\\scalar_flat-n100000-r1.json' --raw-output 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\results\\final\\frozen-2026-11-11\\scalar\\runs\\scalar_flat-n100000-r1-queries.csv' --metadata data_seed=5206 --metadata database_sha256=c5491db56eed7d3cd5990b2c61e872199e6b724a8b6a4bcf899310dba9da1b9d --metadata freeze_record_sha256=2ccb86a5fbc8882cc56bbb284f9df6c6bdc6e7f843090fc3b09a57d50471fbe2 --metadata git_commit=8385c035fc2b89a87c7b743b57fb34561db0a6b4 --metadata git_dirty=False --metadata process_run=1 --metadata queries_sha256=1ec98e6b258c7029d577926b2e2ab8951675848371100d0654923bcb5ffdfd80 --metadata reference_sha256=d2f4300b7c5f71f07eb8bdee9cb701a0d8fa595fc03a6d02f842d27adaffd690 --metadata split=test",
+    "'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\build\\vector_search.exe' --database 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\database.cvec' --queries 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\test.cvec' --database-size 10000 --route scalar_flat --k 10 --ground-truth 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\reference-test-scalar\\top10-test-n10000.csv' --warmup-queries 10 --repetitions 5 --threads 1,2,4 --batch-repetitions 3 --label scalar_flat-n10000-r2 --output 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\results\\final\\frozen-2026-11-11\\scalar\\runs\\scalar_flat-n10000-r2.json' --raw-output 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\results\\final\\frozen-2026-11-11\\scalar\\runs\\scalar_flat-n10000-r2-queries.csv' --metadata data_seed=5206 --metadata database_sha256=c5491db56eed7d3cd5990b2c61e872199e6b724a8b6a4bcf899310dba9da1b9d --metadata freeze_record_sha256=2ccb86a5fbc8882cc56bbb284f9df6c6bdc6e7f843090fc3b09a57d50471fbe2 --metadata git_commit=8385c035fc2b89a87c7b743b57fb34561db0a6b4 --metadata git_dirty=False --metadata process_run=2 --metadata queries_sha256=1ec98e6b258c7029d577926b2e2ab8951675848371100d0654923bcb5ffdfd80 --metadata reference_sha256=49a0290b9072687f2f11668c547c4a29a077111e60d21e9f986f45cc8b2df636 --metadata split=test",
+    "'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\build\\vector_search.exe' --database 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\database.cvec' --queries 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\test.cvec' --database-size 50000 --route scalar_flat --k 10 --ground-truth 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\reference-test-scalar\\top10-test-n50000.csv' --warmup-queries 10 --repetitions 5 --threads 1,2,4 --batch-repetitions 3 --label scalar_flat-n50000-r2 --output 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\results\\final\\frozen-2026-11-11\\scalar\\runs\\scalar_flat-n50000-r2.json' --raw-output 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\results\\final\\frozen-2026-11-11\\scalar\\runs\\scalar_flat-n50000-r2-queries.csv' --metadata data_seed=5206 --metadata database_sha256=c5491db56eed7d3cd5990b2c61e872199e6b724a8b6a4bcf899310dba9da1b9d --metadata freeze_record_sha256=2ccb86a5fbc8882cc56bbb284f9df6c6bdc6e7f843090fc3b09a57d50471fbe2 --metadata git_commit=8385c035fc2b89a87c7b743b57fb34561db0a6b4 --metadata git_dirty=False --metadata process_run=2 --metadata queries_sha256=1ec98e6b258c7029d577926b2e2ab8951675848371100d0654923bcb5ffdfd80 --metadata reference_sha256=097e92e59dbb23ed55920853883cb9641cbd2931dcd8f288c105b1eed49da4b2 --metadata split=test",
+    "'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\build\\vector_search.exe' --database 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\database.cvec' --queries 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\test.cvec' --database-size 100000 --route scalar_flat --k 10 --ground-truth 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\reference-test-scalar\\top10-test-n100000.csv' --warmup-queries 10 --repetitions 5 --threads 1,2,4 --batch-repetitions 3 --label scalar_flat-n100000-r2 --output 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\results\\final\\frozen-2026-11-11\\scalar\\runs\\scalar_flat-n100000-r2.json' --raw-output 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\results\\final\\frozen-2026-11-11\\scalar\\runs\\scalar_flat-n100000-r2-queries.csv' --metadata data_seed=5206 --metadata database_sha256=c5491db56eed7d3cd5990b2c61e872199e6b724a8b6a4bcf899310dba9da1b9d --metadata freeze_record_sha256=2ccb86a5fbc8882cc56bbb284f9df6c6bdc6e7f843090fc3b09a57d50471fbe2 --metadata git_commit=8385c035fc2b89a87c7b743b57fb34561db0a6b4 --metadata git_dirty=False --metadata process_run=2 --metadata queries_sha256=1ec98e6b258c7029d577926b2e2ab8951675848371100d0654923bcb5ffdfd80 --metadata reference_sha256=d2f4300b7c5f71f07eb8bdee9cb701a0d8fa595fc03a6d02f842d27adaffd690 --metadata split=test",
+    "'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\build\\vector_search.exe' --database 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\database.cvec' --queries 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\test.cvec' --database-size 10000 --route scalar_flat --k 10 --ground-truth 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\reference-test-scalar\\top10-test-n10000.csv' --warmup-queries 10 --repetitions 5 --threads 1,2,4 --batch-repetitions 3 --label scalar_flat-n10000-r3 --output 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\results\\final\\frozen-2026-11-11\\scalar\\runs\\scalar_flat-n10000-r3.json' --raw-output 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\results\\final\\frozen-2026-11-11\\scalar\\runs\\scalar_flat-n10000-r3-queries.csv' --metadata data_seed=5206 --metadata database_sha256=c5491db56eed7d3cd5990b2c61e872199e6b724a8b6a4bcf899310dba9da1b9d --metadata freeze_record_sha256=2ccb86a5fbc8882cc56bbb284f9df6c6bdc6e7f843090fc3b09a57d50471fbe2 --metadata git_commit=8385c035fc2b89a87c7b743b57fb34561db0a6b4 --metadata git_dirty=False --metadata process_run=3 --metadata queries_sha256=1ec98e6b258c7029d577926b2e2ab8951675848371100d0654923bcb5ffdfd80 --metadata reference_sha256=49a0290b9072687f2f11668c547c4a29a077111e60d21e9f986f45cc8b2df636 --metadata split=test",
+    "'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\build\\vector_search.exe' --database 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\database.cvec' --queries 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\test.cvec' --database-size 50000 --route scalar_flat --k 10 --ground-truth 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\reference-test-scalar\\top10-test-n50000.csv' --warmup-queries 10 --repetitions 5 --threads 1,2,4 --batch-repetitions 3 --label scalar_flat-n50000-r3 --output 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\results\\final\\frozen-2026-11-11\\scalar\\runs\\scalar_flat-n50000-r3.json' --raw-output 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\results\\final\\frozen-2026-11-11\\scalar\\runs\\scalar_flat-n50000-r3-queries.csv' --metadata data_seed=5206 --metadata database_sha256=c5491db56eed7d3cd5990b2c61e872199e6b724a8b6a4bcf899310dba9da1b9d --metadata freeze_record_sha256=2ccb86a5fbc8882cc56bbb284f9df6c6bdc6e7f843090fc3b09a57d50471fbe2 --metadata git_commit=8385c035fc2b89a87c7b743b57fb34561db0a6b4 --metadata git_dirty=False --metadata process_run=3 --metadata queries_sha256=1ec98e6b258c7029d577926b2e2ab8951675848371100d0654923bcb5ffdfd80 --metadata reference_sha256=097e92e59dbb23ed55920853883cb9641cbd2931dcd8f288c105b1eed49da4b2 --metadata split=test",
+    "'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\build\\vector_search.exe' --database 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\database.cvec' --queries 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\test.cvec' --database-size 100000 --route scalar_flat --k 10 --ground-truth 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\reference-test-scalar\\top10-test-n100000.csv' --warmup-queries 10 --repetitions 5 --threads 1,2,4 --batch-repetitions 3 --label scalar_flat-n100000-r3 --output 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\results\\final\\frozen-2026-11-11\\scalar\\runs\\scalar_flat-n100000-r3.json' --raw-output 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\results\\final\\frozen-2026-11-11\\scalar\\runs\\scalar_flat-n100000-r3-queries.csv' --metadata data_seed=5206 --metadata database_sha256=c5491db56eed7d3cd5990b2c61e872199e6b724a8b6a4bcf899310dba9da1b9d --metadata freeze_record_sha256=2ccb86a5fbc8882cc56bbb284f9df6c6bdc6e7f843090fc3b09a57d50471fbe2 --metadata git_commit=8385c035fc2b89a87c7b743b57fb34561db0a6b4 --metadata git_dirty=False --metadata process_run=3 --metadata queries_sha256=1ec98e6b258c7029d577926b2e2ab8951675848371100d0654923bcb5ffdfd80 --metadata reference_sha256=d2f4300b7c5f71f07eb8bdee9cb701a0d8fa595fc03a6d02f842d27adaffd690 --metadata split=test"
+  ]
+}
