@@ -1,8 +1,8 @@
 # Report sections by Member D: Experimental setup, results and multi-threading
 
-The tuning results are taken from `results/tuning/summary.md`. A total of 500 queries were used
-for tuning, with each configuration running in a separate process and completing three timed
-passes. Section 5.4 will be completed once the final evaluation results are available.
+Sections 5.2 and 5.3 use the tuning run in `results/tuning/` (500 tuning queries). Section 5.4
+and Section 6.2 use the final run on the 1,000 held-out test queries, stored in
+`results/final/frozen-2026-11-11/`.
 
 ---
 
@@ -78,8 +78,13 @@ After warmup, the full query set is searched several times using one thread. Lat
 for these runs. Batch throughput is measured separately using 1, 2 and 4 threads, and the median
 pass time is reported.
 
-The complete procedure, including the number of repetitions and the locations of the raw
-results, is documented in `docs/benchmarking.md`.
+In the final run, each configuration used 10 warmup queries, 5 timed passes and 3 batch passes
+at each thread count, and the whole process was repeated 3 times. We report the median over
+the three processes, and for IVF we then take the mean over the three training seeds. The tuning
+run was shorter: one process and three timed passes per configuration.
+
+The complete procedure, including the locations of the raw results, is documented in
+`docs/benchmarking.md`.
 
 ### 4.6 Answer sheets and scoring backend
 
@@ -92,17 +97,31 @@ To do this, we generated another set of reference answers using an exhaustive AV
 
 Across all three database sizes and the 500 tuning queries, both methods returned exactly the
 same top-10 results. This confirms that using AVX2 does not change any of the recall values
-reported in this experiment.
+reported for the tuning run.
+
+For the final evaluation we did not assume this would also hold for the new queries. We made two
+separate sets of answer sheets for the test queries, one with scalar scoring and one with AVX2.
+`scalar_flat` was scored against the scalar sheets, and `optimized_flat` and `ivf` against the
+AVX2 sheets, so each route is compared with answers computed the same way.
 
 ### 4.7 Tuning and final evaluation
 
-The IVF settings were selected using only the 500 tuning queries. At each database size, we
-chose the fastest configuration that achieved an average Recall@10 of at least 0.95 across the
-three training seeds.
+The IVF settings were selected using only the 500 tuning queries. Our starting rule was to pick,
+at each database size, the fastest configuration with an average Recall@10 of at least 0.95
+across the three training seeds (Section 5.3).
 
-The selected settings are saved in `configs/evaluation-freeze.json` before the test queries are
-run. The `run_benchmarks.py` script prevents the test set from being used until the freeze record
-is marked as frozen, and it stores the hash of the freeze record alongside the final results.
+When the team froze the settings, we chose one setting for all three sizes instead: 256 lists
+and 64 probes, with 25 k-means iterations and all three seeds kept. This followed Devam's
+recommendation from his own tuning sweep. The fastest setting at 50,000 and 100,000 vectors,
+64 lists with 16 probes, does not reach 0.95 at 10,000 vectors and only just passes at 50,000
+(0.954), so it leaves almost no margin for new queries. The 256/64 setting had a tuning recall of
+0.964, 0.979 and 0.983 and was only about 7% and 3% slower than 64/16 at 50,000 and 100,000
+vectors.
+
+The frozen settings, the timing procedure and the code commit are saved in
+`configs/evaluation-freeze.json`, which was committed on 11 November 2026 before any test query
+was used. The `run_benchmarks.py` script refuses to run the test set until this record is marked
+as frozen. No settings were changed after the test results were seen.
 
 This separation helps ensure that the final test results are not influenced by the tuning
 process.
@@ -129,7 +148,7 @@ changes in the results.
 We also tested IVF by increasing the number of probes until every list was searched. In this
 case, IVF returned exactly the same results as the exhaustive search.
 
-### 5.2 Exhaustive search: scalar vs optimised
+### 5.2 Exhaustive search: scalar vs optimised (tuning queries)
 
 *Figure: `results/tuning/latency_by_size.png`.*
 
@@ -211,16 +230,68 @@ Finally, we checked whether the results were consistent across the three trainin
 recall difference between seeds was no more than 0.03 for any configuration. For the three
 selected configurations, the difference was even smaller, at no more than 0.003.
 
+As explained in Section 4.7, the setting finally frozen was 256 lists with 64 probes at every
+size, which gives up a little speed at 50,000 and 100,000 vectors for a larger recall margin.
+
 ### 5.4 Held-out test results
 
-*To be completed after the evaluation freeze, using the results stored in `results/final/`.*
+*Figures: `results/final/frozen-2026-11-11/combined/report/`. Tables:
+`results/final/frozen-2026-11-11/combined/report/summary.md`.*
 
-This section will report the frozen IVF configurations and their Recall@10, median and p95
-latency, build time and peak memory for all three database sizes: 10,000, 50,000 and 100,000
-vectors.
+The final run used the frozen settings on the 1,000 test queries, which were not used at any
+point during tuning. It was run on the same laptop as before: 9 scalar runs and 36 AVX2 runs
+(optimised flat, and IVF with three seeds, each repeated in three separate processes).
 
-It will also check whether IVF continues to achieve the target recall of 0.95 on the 1,000 test
-queries that were not used during tuning.
+**Recall.** IVF stayed above the 0.95 target at all three sizes, and the results were very close
+to the tuning run:
+
+| Database size | Tuning recall | Test recall (mean of seeds) | Worst seed on test |
+| ---: | ---: | ---: | ---: |
+| 10,000 | 0.964 | 0.965 | 0.962 |
+| 50,000 | 0.979 | 0.978 | 0.977 |
+| 100,000 | 0.983 | 0.981 | 0.979 |
+
+Recall changed by no more than about 0.002 on the new queries, and even the worst seed was well above 0.95.
+This shows the settings were not over-fitted to the tuning queries. Both flat routes had a recall
+of exactly 1.0, as expected for an exhaustive search.
+
+**Latency.** Single-thread latency per query (ms):
+
+| Database size | Route | Recall@10 | Median | p95 | p99 | Vectors scored |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| 10,000 | `scalar_flat` | 1.000 | 0.565 | 0.628 | 0.830 | 10,000 |
+| 10,000 | `optimized_flat` | 1.000 | 0.246 | 0.266 | 0.418 | 10,000 |
+| 10,000 | `ivf` 256/64 | 0.965 | 0.146 | 0.168 | 0.245 | 2,552 |
+| 50,000 | `scalar_flat` | 1.000 | 2.841 | 3.170 | 4.183 | 50,000 |
+| 50,000 | `optimized_flat` | 1.000 | 1.310 | 1.492 | 2.163 | 50,000 |
+| 50,000 | `ivf` 256/64 | 0.978 | 0.710 | 0.838 | 1.319 | 12,551 |
+| 100,000 | `scalar_flat` | 1.000 | 5.907 | 6.523 | 8.121 | 100,000 |
+| 100,000 | `optimized_flat` | 1.000 | 2.832 | 3.097 | 4.364 | 100,000 |
+| 100,000 | `ivf` 256/64 | 0.981 | 1.940 | 2.282 | 3.468 | 25,128 |
+
+The optimised flat search was 2.3×, 2.2× and 2.1× faster than the scalar search at 10,000,
+50,000 and 100,000 vectors. IVF was faster again: 1.7×, 1.8× and 1.5× faster than the optimised
+flat search at the median, and 1.6×, 1.8× and 1.4× at p95. At 100,000 vectors, IVF was about
+3.0× faster than the scalar baseline. IVF scored about 25% of the database at every size, which
+matches searching 64 of the 256 lists.
+
+**Build time.** IVF is the only route with a real build cost. Training 256 lists with k-means took
+3.7 s at 10,000 vectors, 18.5 s at 50,000 and 36.9 s at 100,000, against 9 ms for the optimised
+flat copy at 100,000. This is much more than the 9.6 s for 64 lists in the tuning run, because
+every k-means iteration compares every vector with every centroid. The cost is paid once per
+index, so it only pays off when many queries are searched.
+
+**Memory.** At 100,000 vectors, the peak memory was 47.1 MiB for the optimised flat search,
+27.4 MiB for IVF and 25.7 MiB for the scalar search. The increase in memory during the index build
+shows the difference clearly: 21.4 MiB for the optimised flat search (its padded copy of the
+database), 1.8 MiB for IVF (centroids and the vector IDs in each list) and almost nothing for the
+scalar search. At 10,000 and 50,000 vectors all three routes had the same peak (26.1 and
+33.8 MiB), because the peak happens while the full data file is loaded and the subset is copied,
+before any index is built.
+
+Overall, the held-out results confirm the tuning results: IVF with the frozen settings reached the
+recall target on new queries and was the fastest route at every size, at the cost of a long
+build.
 
 ---
 
@@ -250,30 +321,32 @@ threading implementation using ThreadSanitizer, which reported no data races.
 
 ### 6.2 Results
 
-*Source: `vector_search --route optimized_flat --threads 1,2,4` on 100,000 vectors and the 500
-tuning queries. The tuning sweep in `results/tuning/` used one thread only, so it has no
-thread-scaling figure.*
+*Figure: `results/final/frozen-2026-11-11/combined/report/thread_scaling.png`. Source: the final
+run on the 1,000 test queries (median of three processes, three batch passes each).*
 
-We measured how performance changed when increasing the number of threads for `optimized_flat`
-with 100,000 vectors.
+We measured batch throughput with 1, 2 and 4 threads for every route. At 100,000 vectors:
 
-| Number of threads | Throughput (queries/sec) | Speed-up |
-| ---: | ---: | ---: |
-| 1 | 312 | 1.00× |
-| 2 | 558 | 1.79× |
-| 4 | 1,058 | 3.39× |
+| Route | 1 thread | 2 threads | 4 threads | Speed-up at 4 | Efficiency |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `scalar_flat` | 166 | 276 | 538 | 3.25× | 81% |
+| `optimized_flat` | 346 | 536 | 1,007 | 2.92× | 73% |
+| `ivf` 256/64 | 506 | 758 | 1,368 | 2.71× | 68% |
 
-The results show a clear improvement as more threads are added. With four threads, throughput
-increased from 312 to 1,058 queries per second, giving a speed-up of 3.39×. This corresponds to
-approximately 85% parallel efficiency.
+(Throughput in queries per second; efficiency is the speed-up divided by 4.)
 
-The workload was also distributed fairly evenly across the four threads, with each processing
-between 120 and 129 queries.
+All routes got faster with more threads, and IVF stayed the fastest at every thread count. With
+four threads, IVF answered 1,368 queries per second, about 8 times the single-thread scalar
+baseline. In all 45 runs, the multi-threaded results matched the single-thread results exactly.
 
-However, the speed-up was not perfectly linear. One reason is that every query needs to read the
-entire database, so multiple threads compete for memory bandwidth and shared cache resources.
-The laptop may also reduce its processor clock speed when more cores are active, which limits
-the overall improvement.
+The speed-up was not linear, and it was different for each route. At 10,000 vectors, where the
+database is only about 2 MB and fits in the processor's 12 MB L3 cache, all three routes reached
+about 3.0× with four threads. Since memory is not the limit there, the main reason is likely
+that the laptop lowers its clock speed when more cores are busy. At 100,000 vectors (about
+20 MB), the routes start to differ. The scalar search spends the most time on arithmetic per
+vector, so it is least affected by threads sharing memory and scaled best. The AVX2 search reads
+the same data much faster, so the four threads compete more for memory bandwidth. IVF scaled the
+least: each query does less work, it reads vectors from scattered places in memory, and the
+probed lists have different sizes, so some queries take longer than others.
 
 ### 6.3 Limitations
 
@@ -286,25 +359,34 @@ There are a few limitations to consider when looking at these results:
 - **Memory measurement:** Peak memory represents the usage of the entire benchmark process. On
   Windows, this value cannot be reset after loading the data, so it also includes memory used
   while reading the input files.
-- **Tuning repetitions:** The tuning experiments used one process and three timed passes per
-  configuration. The final evaluation follows the complete procedure described in
-  `docs/benchmarking.md`.
+- **Run-to-run variation:** The tuning experiments used one process and three timed passes per
+  configuration, so their timings are less reliable than the final run. Laptop timings also
+  vary between runs: an earlier single run of `optimized_flat` with four threads on the tuning
+  queries reached 3.39×, compared with 2.92× in the final run. We report the final run, which
+  takes the median of three separate processes.
+- **IVF build time:** The frozen IVF setting needs up to 37 s of k-means training at 100,000
+  vectors. This is not included in the query latency, but it matters if the index has to be
+  rebuilt often.
+- **One setting for all sizes:** We froze one IVF setting for all three sizes. A setting chosen
+  for each size could be a little faster, but would leave less recall margin.
 
 ---
 
 ## Overall summary
 
 The experiments show that each search method has its own advantages. The scalar implementation
-provides a simple baseline, while AVX2 improves exhaustive search performance by around 2.2×
-without affecting recall.
+provides a simple and exact baseline, and AVX2 makes the exhaustive search about 2.1 to 2.3 times
+faster without changing the results.
 
-IVF provides a further improvement by searching only selected parts of the database. It achieves
-the target recall of 0.95 while examining roughly a quarter of the vectors, making it faster and
-more memory-efficient than the optimised exhaustive search in the tested configurations.
+IVF gives a further improvement by searching only part of the database. With the frozen setting
+of 256 lists and 64 probes, it reached a Recall@10 of 0.965 to 0.981 on the 1,000 held-out test
+queries, almost the same as on the tuning queries. It was 1.5 to 1.8 times faster than the
+optimised exhaustive search and about 3 times faster than the scalar search at 100,000 vectors,
+while using much less extra memory. The cost is a k-means build of up to 37 seconds.
 
-Multi-threading also improves overall throughput, reaching a 3.39× speed-up with four threads.
-However, memory bandwidth and processor limitations prevent the performance from scaling
-perfectly with the number of threads.
+Multi-threading across queries improves throughput for every route, with speed-ups of 2.7× to
+3.3× on four threads at 100,000 vectors, and the results stay exactly the same as on one thread.
+Clock speed limits and shared memory bandwidth stop the speed-up from being linear.
 
-Overall, the results highlight the trade-off between search accuracy, execution time, memory
-usage and parallel performance.
+Overall, the results show the trade-off between accuracy, search time, build time, memory usage
+and parallel performance.
