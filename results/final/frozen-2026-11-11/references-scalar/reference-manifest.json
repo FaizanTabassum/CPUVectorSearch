@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "generator": "scripts/make_references.py",
+  "created_utc": "2026-11-13T05:41:30+00:00",
+  "method": "exhaustive optimized_flat scan, ties broken by smaller database ID",
+  "backend_requested": "scalar",
+  "backend": "scalar",
+  "split": "test",
+  "k": 10,
+  "database_file": "database.cvec",
+  "database_sha256": "c5491db56eed7d3cd5990b2c61e872199e6b724a8b6a4bcf899310dba9da1b9d",
+  "queries_file": "test.cvec",
+  "queries_sha256": "1ec98e6b258c7029d577926b2e2ab8951675848371100d0654923bcb5ffdfd80",
+  "dataset_manifest_sha256": "68d4ffa78af5de689324d959b95685d43b0f42a714b3a6956af0bf7e437857e6",
+  "outputs": [
+    {
+      "file": "top10-test-n10000.csv",
+      "database_rows": 10000,
+      "queries": 1000,
+      "k": 10,
+      "sha256": "49a0290b9072687f2f11668c547c4a29a077111e60d21e9f986f45cc8b2df636"
+    },
+    {
+      "file": "top10-test-n50000.csv",
+      "database_rows": 50000,
+      "queries": 1000,
+      "k": 10,
+      "sha256": "097e92e59dbb23ed55920853883cb9641cbd2931dcd8f288c105b1eed49da4b2"
+    },
+    {
+      "file": "top10-test-n100000.csv",
+      "database_rows": 100000,
+      "queries": 1000,
+      "k": 10,
+      "sha256": "d2f4300b7c5f71f07eb8bdee9cb701a0d8fa595fc03a6d02f842d27adaffd690"
+    }
+  ],
+  "binary_sha256": "8f5866f92eea887d7408cbf921dbda4bcf96af331f901f132f35c10cd98b5c53",
+  "git": {
+    "commit": "8385c035fc2b89a87c7b743b57fb34561db0a6b4",
+    "dirty": false
+  },
+  "freeze_record": {
+    "file": "C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\configs\\evaluation-freeze.json",
+    "sha256": "2ccb86a5fbc8882cc56bbb284f9df6c6bdc6e7f843090fc3b09a57d50471fbe2",
+    "frozen_at_utc": "2026-11-11T04:04:27Z",
+    "frozen_code_commit": "f0185ef104d3cf74e6744aa2fd0d587048c0a9df"
+  },
+  "commands": [
+    "'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\build\\vector_search.exe' --database 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\database.cvec' --queries 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\test.cvec' --database-size 10000 --k 10 --route optimized_flat --param backend=scalar --warmup-queries 0 --repetitions 1 --threads 1 --batch-repetitions 1 --results-output 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\reference-test-scalar\\top10-test-n10000.csv' --output 'C:\\Users\\aravi\\AppData\\Local\\Temp\\tmpqiokgk5y\\n10000.json'",
+    "'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\build\\vector_search.exe' --database 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\database.cvec' --queries 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\test.cvec' --database-size 50000 --k 10 --route optimized_flat --param backend=scalar --warmup-queries 0 --repetitions 1 --threads 1 --batch-repetitions 1 --results-output 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\reference-test-scalar\\top10-test-n50000.csv' --output 'C:\\Users\\aravi\\AppData\\Local\\Temp\\tmpqiokgk5y\\n50000.json'",
+    "'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\build\\vector_search.exe' --database 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\database.cvec' --queries 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\test.cvec' --database-size 100000 --k 10 --route optimized_flat --param backend=scalar --warmup-queries 0 --repetitions 1 --threads 1 --batch-repetitions 1 --results-output 'C:\\Users\\aravi\\AppData\\Roaming\\SPB_Data\\CPUVectorSearch\\data\\processed\\glove-50d-seed5206\\reference-test-scalar\\top10-test-n100000.csv' --output 'C:\\Users\\aravi\\AppData\\Local\\Temp\\tmpqiokgk5y\\n100000.json'"
+  ]
+}
